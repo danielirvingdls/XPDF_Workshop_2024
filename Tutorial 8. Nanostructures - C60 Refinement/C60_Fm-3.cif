@@ -1,0 +1,121 @@
+
+data_
+_chemical_name_mineral ?Buckminsterfullerene?
+_cell_length_a 14.18253
+_cell_length_b 14.18253
+_cell_length_c 14.18253
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+_cell_volume 2852.735
+_symmetry_space_group_name_H-M Fm-3
+loop_
+	_symmetry_equiv_pos_as_xyz
+	 'x, y, z '
+	 '-x, -y, z '
+	 '-x, y, -z '
+	 '-x, y, z '
+	 '-y, -z, -x '
+	 '-y, -z, x '
+	 '-y, z, -x '
+	 '-y, z, x '
+	 '-z, -x, -y '
+	 '-z, -x, y '
+	 '-z, x, -y '
+	 '-z, x, y '
+	 'z, -x, -y '
+	 'z, -x, y '
+	 'z, x, -y '
+	 'z, x, y '
+	 'y, -z, -x '
+	 'y, -z, x '
+	 'y, z, -x '
+	 'y, z, x '
+	 'x, -y, -z '
+	 'x, -y, z '
+	 'x, y, -z '
+	 '-x, -y, -z '
+	 'x+1/2, y+1/2, z '
+	 '-x+1/2, -y+1/2, z '
+	 '-x+1/2, y+1/2, -z '
+	 '-x+1/2, y+1/2, z '
+	 '-y+1/2, -z+1/2, -x '
+	 '-y+1/2, -z+1/2, x '
+	 '-y+1/2, z+1/2, -x '
+	 '-y+1/2, z+1/2, x '
+	 '-z+1/2, -x+1/2, -y '
+	 '-z+1/2, -x+1/2, y '
+	 '-z+1/2, x+1/2, -y '
+	 '-z+1/2, x+1/2, y '
+	 'z+1/2, -x+1/2, -y '
+	 'z+1/2, -x+1/2, y '
+	 'z+1/2, x+1/2, -y '
+	 'z+1/2, x+1/2, y '
+	 'y+1/2, -z+1/2, -x '
+	 'y+1/2, -z+1/2, x '
+	 'y+1/2, z+1/2, -x '
+	 'y+1/2, z+1/2, x '
+	 'x+1/2, -y+1/2, -z '
+	 'x+1/2, -y+1/2, z '
+	 'x+1/2, y+1/2, -z '
+	 '-x+1/2, -y+1/2, -z '
+	 'x+1/2, y, z+1/2 '
+	 '-x+1/2, -y, z+1/2 '
+	 '-x+1/2, y, -z+1/2 '
+	 '-x+1/2, y, z+1/2 '
+	 '-y+1/2, -z, -x+1/2 '
+	 '-y+1/2, -z, x+1/2 '
+	 '-y+1/2, z, -x+1/2 '
+	 '-y+1/2, z, x+1/2 '
+	 '-z+1/2, -x, -y+1/2 '
+	 '-z+1/2, -x, y+1/2 '
+	 '-z+1/2, x, -y+1/2 '
+	 '-z+1/2, x, y+1/2 '
+	 'z+1/2, -x, -y+1/2 '
+	 'z+1/2, -x, y+1/2 '
+	 'z+1/2, x, -y+1/2 '
+	 'z+1/2, x, y+1/2 '
+	 'y+1/2, -z, -x+1/2 '
+	 'y+1/2, -z, x+1/2 '
+	 'y+1/2, z, -x+1/2 '
+	 'y+1/2, z, x+1/2 '
+	 'x+1/2, -y, -z+1/2 '
+	 'x+1/2, -y, z+1/2 '
+	 'x+1/2, y, -z+1/2 '
+	 '-x+1/2, -y, -z+1/2 '
+	 'x, y+1/2, z+1/2 '
+	 '-x, -y+1/2, z+1/2 '
+	 '-x, y+1/2, -z+1/2 '
+	 '-x, y+1/2, z+1/2 '
+	 '-y, -z+1/2, -x+1/2 '
+	 '-y, -z+1/2, x+1/2 '
+	 '-y, z+1/2, -x+1/2 '
+	 '-y, z+1/2, x+1/2 '
+	 '-z, -x+1/2, -y+1/2 '
+	 '-z, -x+1/2, y+1/2 '
+	 '-z, x+1/2, -y+1/2 '
+	 '-z, x+1/2, y+1/2 '
+	 'z, -x+1/2, -y+1/2 '
+	 'z, -x+1/2, y+1/2 '
+	 'z, x+1/2, -y+1/2 '
+	 'z, x+1/2, y+1/2 '
+	 'y, -z+1/2, -x+1/2 '
+	 'y, -z+1/2, x+1/2 '
+	 'y, z+1/2, -x+1/2 '
+	 'y, z+1/2, x+1/2 '
+	 'x, -y+1/2, -z+1/2 '
+	 'x, -y+1/2, z+1/2 '
+	 'x, y+1/2, -z+1/2 '
+	 '-x, -y+1/2, -z+1/2 '
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_B_iso_or_equiv
+C1 C  48 0.06008 0 0.27072 1 0.5
+C2 C  96 0.1102 0.07035 0.20215 1 0.5
+C3 C  96 0.18793 0.06088 0.15233 1 0.5
