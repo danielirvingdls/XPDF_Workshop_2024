@@ -1,0 +1,30 @@
+	rigid
+		prm rCC     1.30  min 1.1 max 1.5
+		prm rCO     1.20  min 1.0 max 1.4
+		prm rCN     1.30  min 1.1 max 1.5
+		prm rCH     1.08  min 0.8 max 1.1
+		prm rOH     1.08  min 0.8 max 1.1
+		prm rNH     1.08  min 0.8 max 1.1
+		prm dCOH   90.00  min 0   max 180
+		prm dCNC   90.00  min 0   max 360  
+		prm dCH3    0.00  min 0   max 360 
+	   z_matrix X1
+	   z_matrix X2  X1 1
+	   z_matrix C1  X2 =rCC; X1 90
+	   z_matrix C2  X2 =rCC; X1 90    C1  60
+	   z_matrix C3  X2 =rCC; X1 90    C1 120
+	   z_matrix C4  X2 =rCC; X1 90    C1 180
+	   z_matrix C5  X2 =rCC; X1 90    C1 240
+	   z_matrix C6  X2 =rCC; X1 90    C1 300
+	   z_matrix X3  C1 1     X2 90    X1   0
+	   z_matrix O1  C1 =rCO; X3 90    X2 180
+	   z_matrix H1  O1 =rOH; C1 120   X1 =dCOH;
+	   z_matrix H2  C2 =rCH; C1 120   X2 180
+	   z_matrix H3  C3 =rCH; C2 120   X2 180
+	   z_matrix N1  C4 =rCN; C3 120   X2 180
+	   z_matrix H5  C5 =rCH; C4 120   X2 180
+	   z_matrix H6  C6 =rCH; C5 120   X2 180
+	   z_matrix H7  N1 =rNH; C4 240   X1 =dCNC;
+	   z_matrix C7  N1 =rCN; C4 120   X1 =dCNC;
+
+
