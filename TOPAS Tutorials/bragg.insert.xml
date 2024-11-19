@@ -1,0 +1,2743 @@
+<?xml version="1.0"?>
+<menu name="TOPASforBragg">
+	<item name="Run TOPAS" type="macro">
+			do_ta(v) {
+				runInSystemShell(v, jEdit.getProperty("ta.main.dir"));
+				waitForConsole(v);
+				runInSystemShell(v, "topas&amp;");
+			}
+			do_ta(view);
+	</item>
+	<menu name="1. Select Diffraction File">
+		<item name="1a. Select Diffraction File" type="macro">
+TAnewINP(v)
+{
+	String w_ext = jEdit.getProperty("ta.last_xdd_type");
+	if (w_ext == null) w_ext = "*.xy";
+	jEdit.setProperty("vfs.browser.last-filter", w_ext);
+
+	String w_path = jEdit.getProperty("ta.last_new_inp_dir");
+	if (w_path == null) {
+		w_path = jEdit.getProperty("ta.main.dir") +"test_examples\\";
+	}
+	jEdit.setProperty("vfs.browser.last-path", w_path);
+
+	VFSFileChooserDialog chooser = new VFSFileChooserDialog(v, w_path, VFSBrowser.OPEN_DIALOG, true);
+	String[] files = chooser.getSelectedFiles();
+	if (files != null) {
+		String w_dir = MiscUtilities.getParentOfPath(files[0]);
+		String w_fn_no_ext = MiscUtilities.getFileNameNoExtension(files[0]);
+		jEdit.setProperty("ta.last_new_inp_dir", w_dir);
+		
+		String w_path_inp = w_dir + w_fn_no_ext + ".inp";
+		b = jEdit.openFile(v, w_path_inp);
+		if (b != null) {
+			if (b.isNewFile()) {
+				t = v.getTextArea();
+				int i = 0;
+				while(true) {
+					t.goToEndOfLine(false);
+					String w_path = MiscUtilities.getFileName(files[i]);
+					if (w_path.indexOf(' ') != -1) {
+						w_path = "\"" + w_path + "\"";
+					}  
+					b.insert(t.getCaretPosition(), "'=== FILE HEADER ===");
+					b.insert(t.getCaretPosition(), "\nr_wp 0 r_exp 0 r_p 0 r_wp_dash 0 r_p_dash 0 r_exp_dash 0 weighted_Durbin_Watson 0 gof 0"); 
+					b.insert(t.getCaretPosition(), "\niters 100000 'Maximum number of iterations of refinement"); 
+					b.insert(t.getCaretPosition(), "\nchi2_convergence_criteria 0.001 'Stop criteria for refinement"); 
+					b.insert(t.getCaretPosition(), "\n'do_errors 'Reports errors for each refined value"); 
+					b.insert(t.getCaretPosition(), "\n'continue_after_convergence 'Continues refinement even after reaching the stop criteria");
+					b.insert(t.getCaretPosition(), "\n\n'=== POWDER DIFFRACTION FILE ===");
+					b.insert(t.getCaretPosition(), "\nxdd " + w_path); 
+					b.insert(t.getCaretPosition(), "\n\n'=== FILE PREPARATION ===");
+					b.insert(t.getCaretPosition(), "\nx_calculation_step = Yobs_dx_at(Xo); 'Sets the calculation step size for Rietveld refinement.");
+					
+					i++;
+					if (i == files.length) break;
+				}
+				jEdit.setProperty("ta.last_xdd_type", "*" + MiscUtilities.getFileExtension(files[0]));
+			} else {
+				String wmes = "INP file " + w_path_inp + " already exists";
+				Macros.message(v, wmes);
+			}
+		}
+	}
+}
+TAnewINP(view);
+		</item>
+		<item name="ii. ...neutron data" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\tneutron_data"); 
+		</item>
+		<item name="iii. ...xye format file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\txye_format"); 
+		</item>
+		<item name="iv. ...gsas format file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\tgsas_format"); 
+		</item>
+		<item name="iv. ...Fullprof format file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\tfullprof_format"); 
+		</item>
+			<menu name="1b. file preparation">
+				<item name="i. diffraction file step size" type="macro">
+					textArea.goToEndOfLine(false); 
+					buffer.insert(textArea.getCaretPosition(), "\nx_calculation_step = # 'Sets the calculation step size for Rietveld refinement. Replace # sign with the desired value or use Auto Step Size above instead"); 
+				</item>
+				<item name="ii. convolution step" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\nconvolution_step 1 'Number of calculated data points per measured point. Replace 1 with a larger integer only if using large step sizes greater than about 0.03 degrees 2Th or when high precision is required"); 
+				</item>
+				<item name="iii. start x-value" type="xinsert_script">{%startxvalue "Enter Starting x-value:"}{@
+				textArea.goToEndOfLine(false);
+				}\nstart_X {$$startxvalue} 'Removes lower 2th values from future calculations</item>
+				<item name="iv. end x-value" type="xinsert_script">{%endxvalue "Enter Ending x-value:"}{@
+				textArea.goToEndOfLine(false);
+				}\nfinish_X {$$endxvalue} 'Removes higher 2th values from future calculations</item>
+				<item name="v. exclude region" type="xinsert_script">{%excludestring "Enter start and end 2th values for excluded region, separated by a space:"}{@
+				textArea.goToEndOfLine(false);
+				}\nexclude {$$excludestring} 'Excludes region from future calculations</item>
+				<item name="vi. rebin diffraction data" type="xinsert_script">{%rebinstring "Enter step size to rebin data to:"}{@
+				textArea.goToEndOfLine(false);
+				}\nrebin_with_dx_of {$$rebinstring} 'Rebinning value. Only needed when the background of observed data is large</item>
+				<item name="vii. smoothing" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\nsmooth 2 'Replace # with the desired number of points for Savitzky-Golay smoothing"); 
+				</item>
+			</menu>
+	</menu>
+	<menu name="2. Background">
+		<item name="i. Chebyshev Background" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== BACKGROUND FUNCTION ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nbkg @ 0 0 0 0 0 0 ");
+			buffer.insert(textArea.getCaretPosition(), "\n      0 0 0 0 0 0 ");
+		</item>
+		<item name="ii. 1/x background" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nOne_on_X(@, 1000) 'Refines a 1/x background function ideal for describing low angle background"); 
+		</item>
+		<item name="iii. cosine Fourier series" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nBkg_GSAS_f2(bk1, 0, bk2, 0, bk3, 0, bk4, 0, bk5, 0, bk6, 0, bk7, 0, bk8, 0, bk9, 0, bk10, 0, bk11, 0, bk12, 0)"); 
+		</item>
+		<item name="iv. rise at low Q (air scatter)" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nBkg_GSAS_f5(bk1, 0, bk2, 0, bk3, 0, bk4, 0, bk5, 0, bk6, 0, bk7, 0, bk8, 0)"); 
+		</item>
+		<item name="v. rise at low Q (air scatter) and high Q (thermal diffuse scattering)" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nBkg_GSAS_f6(bk1, 0, bk2, 0, bk3, 0, bk4, 0, bk5, 0, bk6, 0, bk7, 0, bk8, 0, bk9, 0, bk10, 0, bk11, 0, bk12, 0, bk13, 0, bk14, 0, bk15, 0)"); 
+		</item>
+		<item name="vi. background from file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nbkg_file(filename,@,1)"); 
+		</item>
+	</menu>
+	<menu name="3. Radiation Source">
+		<menu name="3a. X-ray Sources">
+			<item name="i. Synchrotron wavelength (Area detector)" type="xinsert_script">{%wavelength "Enter Wavelength:"}{@
+			textArea.goToBufferEnd(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Synchrotron X-ray source with area detector (polarisation corrected data) ===");
+			buffer.insert(textArea.getCaretPosition(), "\nLP_Factor( ,0) 'Lorentz-Polarisation factor.");
+			}\nlam ymin_on_ymax 0.0001 la 1.0 lo {$$wavelength} lh 0.1 'Radiation profile
+			Rs {%stod "Enter the sample-to-detector distance (mm):"}{@} {$$stod} 'Sample-to-detector distance (mm)
+			</item>
+			<item name="ii. Synchrotron energy (Area detector)" type="xinsert_script">{%energy "Enter Energy (keV):"}{@
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Synchrotron X-ray source with area detector (polarisation corrected data) ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nLP_Factor( ,0) 'Lorentz-Polarisation factor"); 
+			}\nlam ymin_on_ymax 0.0001 la 1.0 lo =12.3984191/{$$energy}; : 0 lh 0.1 'Radiation profile
+			Rs {%stod "Enter the sample-to-detector distance (mm):"}{@} {$$stod} 'Sample-to-detector distance (mm)
+			</item>
+			<item name="iii. Synchrotron wavelength (2theta scan)" type="xinsert_script">{%wavelength "Enter Wavelength:"}{@
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Synchrotron X-ray source with 2theta scanning detector  ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nSimple_Axial_Model(@,1) 'Describes peak asymmetry due to axial divergence"); 
+			buffer.insert(textArea.getCaretPosition(), "\nLP_Factor( ,90.0) 'Lorentz-Polarisation factor"); 
+			}\nlam ymin_on_ymax 0.0001 la 1.0 lo {$$wavelength} lh 0.1 'Radiation profile
+			</item>
+			<item name="iv. Synchrotron energy (2theta scan)" type="xinsert_script">{%energy "Enter Energy (keV):"}{@
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Synchrotron X-ray source with 2theta scanning detector ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nSimple_Axial_Model(@,1) 'Describes peak asymmetry due to axial divergence"); 
+			buffer.insert(textArea.getCaretPosition(), "\nLP_Factor( ,90.0) 'Lorentz-Polarisation factor"); 
+			}\nlam ymin_on_ymax 0.0001 la 1.0 lo =12.3984191/{$$energy}; : 0 lh 0.1 'Radiation profile
+			</item>
+			<item name="v. Co Panalytical" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Information on Panalytical monochromated Co Ka1 X-ray Source ===");  
+			buffer.insert(textArea.getCaretPosition(), "\n\tlam"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tymin_on_ymax 0.0001");
+			buffer.insert(textArea.getCaretPosition(), "\n\tla 1 lo 1.788960 lh 0.2");
+			buffer.insert(textArea.getCaretPosition(), "\n\tLP_Factor(!th2_monochromator, 32)");
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Simple_Axial_Model(@,8)");
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Specimen_Displacement(@,0)");
+			</item>	
+			<item name="...ADS mode" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\tVariable_Divergence_Intensity");  
+			</item>
+			<item name="vi. Cu Bruker/STOE Reflection" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Information on the profile of Cu D8 ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nlam"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tymin_on_ymax 0.0001"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tla 1 lo 1.540596 lh 0.2"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tLP_Factor(!th2_monochromator, 26.6) 'Lorentz-Polarisation factor"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Simple_Axial_Model(@,8)");
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Specimen_Displacement(@,0)");
+			</item>
+			<item name="vii. Cu Bruker/STOE Transmission" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Information on the profile of Cu D8 ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nlam"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tymin_on_ymax 0.0001"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tla 1 lo 1.540596 lh 0.2"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tLP_Factor(!th2_monochromator, 26.6) 'Lorentz-Polarisation factor"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Simple_Axial_Model(@,8)");
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Zero_Error(@, 0)");
+			</item>
+			<item name="viii. Mo Bruker" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Information on the profile of Mo D8 ==="); 
+			buffer.insert(textArea.getCaretPosition(), "\nlam"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tymin_on_ymax 0.0001"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tla 1 lo 0.709300 lh 0.1"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tLP_Factor(!th2_monochromator, 12.47) 'Lorentz-Polarisation factor");
+			buffer.insert(textArea.getCaretPosition(), "\n\tFull_Axial_Model( 12, 15, 12, @  4, @  3.5)");
+			buffer.insert(textArea.getCaretPosition(), "\n\t'Zero_Error(@, 0)");
+			</item>	
+			<menu name="ix. 2th corrections">
+				<item name="refine zero error" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nZero_Error(@, 0)"); 
+				</item>
+				<item name="refine sample height" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nSpecimen_Displacement(@, 0)"); 
+				</item>
+				<item name="refine sample tilt" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tSpecimen_Tilt(@, 0)"); 
+				</item>
+				<item name="refine capillary displacement" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tDS_Capillary_SD(x_offset, 0, y_offset, 0)"); 
+				</item>
+				<item name="sample-to-detector correction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tStoD_Offset_in2theta(@,0)"); 
+				</item>
+				<item name="polynomial 2th correction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tpolynomial_2th_correction(@,0,@,0,@,0)"); 
+				</item>
+			</menu>
+		</menu>
+		<menu name="3b. Neutron Sources">
+			<item name="i. HRPD Bank 1" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - HRPD Bank 1, backscattering bank ===");  			
+			buffer.insert(textArea.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tscale_pks = D_spacing^4;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tTOF_x_axis_calibration(!t0_bs,   0.27394, !difc_bs, 48213.48769, !difa_bs, -5.50739)"); 
+			buffer.insert(textArea.getCaretPosition(), "\nwifd_pkshape(!two_theta, 168.657, !aprm, 2.50000, !tauf_2, 9.80744, !tauf_1, 0.43977, !tauf_0, 0.000, !taus_0, 25.27420, !taus_1, 2.66797, !t_eff, 144.41296, !hhh, 3.58595, !hhh_0, 11.61348)"); 
+			</item>
+			<item name="ii. HRPD Bank 2" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - HRPD Bank 2, 90 degree bank ===");  			
+			buffer.insert(textArea.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tscale_pks = D_spacing^4;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tTOF_x_axis_calibration(!t0_90,   7.60, !difc_90, 34729.97, !difa_90, 0.296)"); 
+			buffer.insert(textArea.getCaretPosition(), "\nwifd_pkshape(!two_theta, 90.2481, !aprm, 2.50000, !tauf_2, 9.80744, !tauf_1, 0.43977, !tauf_0, 0.000, !taus_0, 25.27420, !taus_1, 2.66797, !t_eff, 144.41296, !hhh, 3.58595, !hhh_0, 11.61348)"); 
+			</item>
+			<item name="iii. GEM Bank 5" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - GEM Bank 5, 90 degree bank ===");  			
+			buffer.insert(textArea.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tscale_pks = D_spacing^4;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tTOF_x_axis_calibration(!t0_90,   -3.27, !difc_90, 6667.89, !difa_90, -5.00)");
+			buffer.insert(textArea.getCaretPosition(), "\nwifd_mic_new(!two_theta, 91.37, !tspow, 3.34670, !tauf_0, 1.13998, !tauf_1, 1.07527, !taus_0, 0.02876, !taus_1, 0.01314, !t_eff, 234.52357, !hhh, 0.02063, !double_pulse, 0.07775)"); 
+			</item>
+			<item name="iv. GEM Bank 6" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - GEM Bank 6, backscattering bank ===");  			
+			buffer.insert(textArea.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tscale_pks = D_spacing^4;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tTOF_x_axis_calibration(!t0_bs,   -1.28, !difc_bs, 9085.46, !difa_bs, -2.39)");
+			buffer.insert(textArea.getCaretPosition(), "\nwifd_mic_new(!two_theta, 154.46, !tspow, 3.34670, !tauf_0, 1.13998, !tauf_1, 1.07527, !taus_0, 0.02876, !taus_1, 0.01314, !t_eff, 234.52357, !hhh, 0.02063, !double_pulse, 0.07775)"); 
+			</item>
+			<item name="v. Polaris Bank 4" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Polaris Bank 4, 90 degree bank ===");  			
+			buffer.insert(textArea.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tscale_pks = D_spacing^4;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tTOF_x_axis_calibration(!t0_90,   -2.94, !difc_90, 5443.67, !difa_90, -8.80)");
+			buffer.insert(textArea.getCaretPosition(), "\nwifd_mic_new(!two_theta, 92.59, !tspow, 2.77922, !tauf_0, 1.21120, !tauf_1, 1.25013, !taus_0, 0.05894, !taus_1, 0.001, !t_eff, 2116.83051, !hhh, 0.17356, !double_pulse, 3.79621)"); 
+			</item>
+			<item name="vi. Polaris Bank 5" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\n'=== RADIATION SOURCE - Polaris Bank 5, backscattering bank ===");  			
+			buffer.insert(textArea.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tscale_pks = D_spacing^4;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\tTOF_x_axis_calibration(!t0_bs,   -4.02, !difc_bs, 7393.88, !difa_bs, -6.69)");
+			buffer.insert(textArea.getCaretPosition(), "\nwifd_mic_new(!two_theta, 146.72, !tspow, 2.77922, !tauf_0, 1.21120, !tauf_1, 1.25013, !taus_0, 0.05894, !taus_1, 0.001, !t_eff, 2116.83051, !hhh, 0.17356, !double_pulse, 3.79621)"); 
+			</item>
+		</menu>
+		<menu name="advanced options">
+			<item name="emission profiles" type="macro">
+				Macros.getMacro("TAInsertLAM").invoke(view);
+				</item>
+			<menu name="instrumental factors">
+				<item name="diffractometer radius" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tRadius(200.5)"); 
+					</item>
+				<item name="slit width" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tSlit_Width(.1)"); 
+					</item>
+				<item name="tube tails" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tTube_Tails(, 0.04, @, -1, @, 1, @, 0.005)"); 
+					</item>
+				<item name="full axial model" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tFull_Axial_Model(12, 15, 12, 2.3, @ 8)"); 
+					</item>
+				<item name="Finger et al" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tFinger_et_al(@ 5, @ 10)"); 
+					</item>
+				<item name="simple axial model" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tSimple_Axial_Model(@, 12)"); 
+					</item>
+				<item name="divergence" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\tDivergence(1)"); 
+					</item>
+				<menu name="variable divergence">
+					<item name="variable divergence shape" type="macro">
+						textArea.goToEndOfLine(false);
+						buffer.insert(textArea.getCaretPosition(), "\n\tVariable_Divergence_Shape(@, 12)"); 
+						</item>
+					<item name="apply intensity correction" type="macro">
+						textArea.goToEndOfLine(false);
+						buffer.insert(textArea.getCaretPosition(), "\n\tVariable_Divergence_Intensity"); 
+						</item>
+				</menu>
+			</menu>
+			<menu name="instrumental corrections">
+				<item name="zero error" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tZero_Error(@, 0)"); 
+				</item>
+				<item name="specimen displacement (mm)" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tSpecimen_Displacement(@, 0)"); 
+				</item>
+				<item name="specimen tilt" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tSpecimen_Tilt(@, 0)"); 
+				</item>
+				<item name="cylindrical 2th correction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tCylindrical_2Th_Correction(@, 1)"); 
+				</item>
+				<item name="cylindrical I correction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tCylindrical_I_Correction(@, 1)"); 
+				</item>
+				<item name="Lorentz-polarisation" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tLP_Factor(17)"); 
+				</item>
+			</menu>
+		</menu>
+		<item name="Save and send to TA" type="macro">
+		Buffer b = jEdit.openTemporary(view,null,jEdit.getProperty("ta.main.dir") + "launch_file.txt",false);
+		try {
+			if (buffer.isDirty()) {
+				buffer.save(view,null,true);
+			}
+			if (b != null) {
+				while(!b.isLoaded())	VFSManager.waitForRequests();
+				b.remove(0,b.getLength());
+				b.insert(0, '"'+buffer.getPath()+'"');
+				b.save(view, b.getPath());
+			}
+		} finally {
+			if(b != null) {
+				//b.close();
+			}
+		}
+		</item>
+	</menu>
+	<menu name="4. Pawley Phase Fitting">
+		<menu name="4a. From Scratch">
+		<item name="i. New Pawley Phase" type="xinsert_script">{%phname "Enter Phase Name:"}{@
+		textArea.goToBufferEnd(false);
+		}\n\n\n'======================================================================================\n'6. PAWLEY PHASE INFORMATION - Crystallographic information for Pawley fitting of phase\n'======================================================================================\n\thkl_Is\n\t\tphase_name &quot;{$$phname}&quot;</item>
+		<menu name="ii. Lattice Parameters">
+				<item name="Cubic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tCubic(@ {$$aparameter})</item>
+				<item name="Tetragonal" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tTetragonal(@ {$$aparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}, @ {$$cparameter})</item>
+				<item name="Orthorhombic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}</item>
+				<item name="Hexagonal" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tHexagonal(@ {$$aparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}, @ {$$cparameter})</item>
+				<item name="Rhombohedral" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tRhombohedral(@ {$$aparameter}{%alparameter "Enter the 'alpha' lattice parameter value:"}{@}, @ {$$alparameter})</item>
+				<item name="Monoclinic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}{%beparameter "Enter the 'beta' lattice parameter value:"}{@}\n\t\tbe @ {$$beparameter}</item>
+				<item name="Triclinic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}{%alparameter "Enter the 'alpha' lattice parameter value:"}{@}\n\t\tal @ {$$alparameter}{%beparameter "Enter the 'beta' lattice parameter value:"}{@}\n\t\tbe @ {$$beparameter}{%gaparameter "Enter the 'gamma' lattice parameter value:"}{@}\n\t\tga @ {$$gaparameter}</item>
+		</menu>
+		<menu name="iii. Space Group">
+			<item name="Select Space Group" type="xinsert_script">{%sgrp "Enter Space Group:"}{@	
+			textArea.goToEndOfLine(false)
+			}\n\t\tspace_group &quot;{$$sgrp}&quot;</item>
+			<item name="HELP - Show Space Group File" type="macro">
+			jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "sgcom5.cpp");
+			</item>
+		</menu>
+		<menu name="iv. Peak Type">
+			<item name="Pseudo Voigt" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tPV_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+			</item>
+			<item name="Thompson-Cox-Hastings" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tTCHZ_Peak_Type(@, 0.01,@, 0.01,@, 0.01,, 0,@, 0.01,, 0)"); 
+			</item>
+			<item name="PearsonVII" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tPVII_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+			</item>
+			<item name="Neutron TOF" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\ttof_sample_peakshape(lor,0.2,dsp,30,dspsq,1)"); 
+			</item>
+			<item name="Bragg dQ peak shape" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+			</item>
+			<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+			</item>
+			<menu name="anisotropic peak shapes (X-ray only)">
+			<item name="Spherical Harmonic 1" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\texp_conv_const = (sh{$$poparameter}-1) / Sin(Th);</item>
+			<item name="Spherical Harmonic 2" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\tprm shexpprm{$$poparameter} 1
+			\t\texp_conv_const = shexpprm{$$poparameter}*sh{$$poparameter}*Tan(Th);</item>
+			<item name="Stephens Tetragonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Tetragonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = Abs(s400 (H^4+ K^4)+ s004 L^4+ s220 H^2 K^2 + s202 (H^2 L^2 + K^2 L^2) );"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Hexagonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Hexagonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s400 + L^4 s004 + H^2 K^2 3 s400 + H^2 L^2 s202 + K^2 L^2 s202 + H K L^2 s202 + H^3 K 2 s400 + H K^3 2 s400;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'====================================================");</item>
+			<item name="Stephens Orthorhombic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Orthorhombic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=======================================================");</item>
+			<item name="Stephens Monoclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Monoclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H K^2 L s121 + H L^3 s103 + H^3 L s301;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s301 100 prm s121 100 prm s103 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Triclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Triclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H^3 K s310 + H^3 L s301 + H K^3 s130 + K^3 L s031 + H L^3 s103 + K L^3 s013 + H^2 K L s211 + H K^2 L s121 + H K L^2 s112;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s310 100 prm s301 100 prm s130 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s031 100 prm s103 100 prm s013 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s211 100 prm s121 100 prm s112 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			</menu>	
+		</menu>
+		<item name="v. le bail extraction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tlebail 1 'Use Le Bail method for peak intensity extraction");
+		</item>
+		</menu>
+		<menu name="4b. from .CIF file">
+			<item name="i. Read a .CIF File" type="macro">
+				textArea.goToBufferEnd(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\n\n'======================================================================================"); 
+				buffer.insert(textArea.getCaretPosition(), "\n'6. PAWLEY PHASE INFORMATION - Crystallographic information for Pawley fitting of phase");  
+				buffer.insert(textArea.getCaretPosition(), "\n'======================================================================================"); 
+				Macros.getMacro("TAInsertCIF").invoke(view);
+
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setReplaceString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.replace(view);
+
+				textArea.goToBufferEnd(true);
+				SearchAndReplace.setSearchString("site");
+				SearchAndReplace.setReplaceString("'site");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.replaceAll(view);
+
+				textArea.goToBufferEnd(false);
+			</item>
+
+			<item name="ii. Phase Name" type="xinsert_script">{%phname "Enter Phase Name:"}{@
+			textArea.goToEndOfLine(false)
+			}\n\t\tphase_name &quot;{$$phname}&quot;</item>
+			<menu name="iii. Peak Type">
+				<item name="Pseudo Voigt" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPV_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+				</item>
+				<item name="Thompson-Cox-Hastings" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tTCHZ_Peak_Type(@, 0.01,@, 0.01,@, 0.01,, 0,@, 0.01,, 0)"); 
+				</item>
+				<item name="PearsonVII" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPVII_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+				</item>
+				<item name="Neutron TOF" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\ttof_sample_peakshape(lor,0.2,dsp,30,dspsq,1)"); 
+				</item>
+				<item name="Bragg dQ peak shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+				</item>
+				<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+				</item>
+			<menu name="anisotropic peak shapes">
+			<item name="Spherical Harmonic 1" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\texp_conv_const = (sh{$$poparameter}-1) / Sin(Th);</item>
+			<item name="Spherical Harmonic 2" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\tprm shexpprm{$$poparameter} 1
+			\t\texp_conv_const = shexpprm{$$poparameter}*sh{$$poparameter}*Tan(Th);</item>
+			<item name="Stephens Tetragonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Tetragonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = Abs(s400 (H^4+ K^4)+ s004 L^4+ s220 H^2 K^2 + s202 (H^2 L^2 + K^2 L^2) );"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Hexagonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Hexagonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s400 + L^4 s004 + H^2 K^2 3 s400 + H^2 L^2 s202 + K^2 L^2 s202 + H K L^2 s202 + H^3 K 2 s400 + H K^3 2 s400;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'====================================================");</item>
+			<item name="Stephens Orthorhombic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Orthorhombic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=======================================================");</item>
+			<item name="Stephens Monoclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Monoclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H K^2 L s121 + H L^3 s103 + H^3 L s301;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s301 100 prm s121 100 prm s103 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Triclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Triclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H^3 K s310 + H^3 L s301 + H K^3 s130 + K^3 L s031 + H L^3 s103 + K L^3 s013 + H^2 K L s211 + H K^2 L s121 + H K L^2 s112;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s310 100 prm s301 100 prm s130 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s031 100 prm s103 100 prm s013 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s211 100 prm s121 100 prm s112 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			</menu>
+			</menu>
+			<menu name="iv. Lattice Parameters">
+				<item name="convert to cubic" type="macro">
+				SearchAndReplace.setSearchString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("c =Get(a);");
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to tetragonal/hexagonal" type="macro">
+				SearchAndReplace.setSearchString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to orthorhombic" type="macro">
+				SearchAndReplace.setSearchString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setReplaceString("b @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to rhombohedral" type="macro">
+				SearchAndReplace.setSearchString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("c =Get(a);");
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setReplaceString("al @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("be =Get(al);");
+				SearchAndReplace.setSearchString("ga");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("ga =Get(al);");
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to monoclinic" type="macro">
+				SearchAndReplace.setSearchString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setReplaceString("b @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setReplaceString("be @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to triclinic" type="macro">
+				SearchAndReplace.setSearchString("hkl_Is");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setReplaceString("b @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setReplaceString("al @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setReplaceString("be @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("ga");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("ga");
+				SearchAndReplace.setReplaceString("ga @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+			</menu>
+			<item name="v. le bail extraction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tlebail 1 'Use Le Bail method for peak intensity extraction");
+			</item>
+		</menu>
+	<item name="Save this file and send to TA" type="macro">
+		Buffer b = jEdit.openTemporary(view,null,jEdit.getProperty("ta.main.dir") + "launch_file.txt",false);
+		try {
+			if (buffer.isDirty()) {
+				buffer.save(view,null,true);
+			}
+			if (b != null) {
+				while(!b.isLoaded())	VFSManager.waitForRequests();
+				b.remove(0,b.getLength());
+				b.insert(0, '"'+buffer.getPath()+'"');
+				b.save(view, b.getPath());
+			}
+		} finally {
+			if(b != null) {
+				//b.close();
+			}
+		}
+	</item>
+	</menu>
+	<menu name="5. Rietveld Refinement">
+		<menu name="5a. Convert Data from Pawley Refinement">
+			<item name="i. Convert from Pawley Refinement" type="macro">
+			SearchAndReplace.setSearchString("6. PAWLEY PHASE INFORMATION - Crystallographic information for Pawley fitting of phase");
+			SearchAndReplace.setAutoWrapAround(true);
+			SearchAndReplace.setReverseSearch(true);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+			SearchAndReplace.find(view);
+			SearchAndReplace.setSearchString("6. PAWLEY PHASE INFORMATION - Crystallographic information for Pawley fitting of phase");
+			SearchAndReplace.setReplaceString("7. RIETVELD REFINEMENT PHASE - Crystallographic data to be refined");
+			SearchAndReplace.setBeanShellReplace(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.replace(view);
+			SearchAndReplace.setSearchString("hkl_Is");
+			SearchAndReplace.setAutoWrapAround(true);
+			SearchAndReplace.setReverseSearch(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+			SearchAndReplace.find(view);
+			SearchAndReplace.setSearchString("hkl_Is");
+			SearchAndReplace.setReplaceString("str");
+			SearchAndReplace.setBeanShellReplace(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.replace(view);
+			SearchAndReplace.setSearchString("load hkl_m_d_th2 I");
+			SearchAndReplace.setAutoWrapAround(true);
+			SearchAndReplace.setReverseSearch(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+			SearchAndReplace.find(view);
+			SearchAndReplace.setSearchString("load hkl_m_d_th2 I");
+			SearchAndReplace.setReplaceString("/* load hkl_m_d_th2 I");
+			SearchAndReplace.setBeanShellReplace(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.replace(view);
+			SearchAndReplace.setSearchString("}");
+			SearchAndReplace.setAutoWrapAround(true);
+			SearchAndReplace.setReverseSearch(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+			SearchAndReplace.find(view);
+			SearchAndReplace.setSearchString("}");
+			SearchAndReplace.setReplaceString("} */");
+			SearchAndReplace.setBeanShellReplace(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.replace(view);
+
+			SearchAndReplace.setSearchString("'site");
+			SearchAndReplace.setReplaceString("site");
+			SearchAndReplace.setBeanShellReplace(false);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+			SearchAndReplace.replaceAll(view);
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tscale @ 0.001");
+			</item>
+
+			<item name="ii. Insert Atoms from .CIF File" type="macro">
+			textArea.goToBufferEnd(false);
+			Macros.getMacro("TAInsertCIF").invoke(view);
+			SearchAndReplace.setSearchString("str");
+			SearchAndReplace.setAutoWrapAround(true);
+			SearchAndReplace.setReverseSearch(true);
+			SearchAndReplace.setIgnoreCase(false);
+			SearchAndReplace.setRegexp(false);
+			SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+			SearchAndReplace.find(view);
+			textArea.goToStartOfWhiteSpace(false);
+			textArea.goToStartOfLine(false);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.goToNextLine(true);
+			textArea.insertEnterAndIndent();
+			textArea.goToBufferEnd(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'Placing an @ sign before a value causes it to be refined in the Rietveld refinement");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'Knowledge of the Wyckoff positions is needed to determine which coordinates can be refined");
+			</item>
+			<menu name="iii. insert new atoms">
+				<item name="Auto Add Atom" type="xinsert_script">{%sitename "Enter the atom site name, e.g. Li1:"}{@textArea.goToBufferEnd(false);}\n\t\tsite\t{$$sitename}{%xparameter "Enter the 'x' fractional coordinate:"}{@}\tx @ {$$xparameter}\t{%yparameter "Enter the 'y' fractional coordinate:"}{@}y @ {$$yparameter}\t{%zparameter "Enter the 'z' fractional coordinate:"}{@}z @ {$$zparameter}\tocc{%atomtype "Enter the atom type, e.g. Li or Li+1:"}{@} {$$atomtype}\t{%occvalue "Enter the fractional occupancy:"}{@}@ {$$occvalue}</item>
+				<item name="...add temperature factor" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\tbeq @ 1"); 
+				</item>
+				<item name="insert refined atom" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x @ #	y @ #	z @ #	occ	$AtomType$ @ #"); 
+				</item>
+				<item name="insert fixed atom" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #"); 
+				</item>
+				<item name="insert refined atom with temp. factor" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x @ #	y @ #	z @ #	occ	$AtomType$ @ #	beq @ #"); 
+				</item>
+				<item name="insert fixed atom with temp. factor" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #	beq #"); 
+				</item>
+				<item name="insert atom with tutorial text" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #	beq #");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace $SiteName$ with the name of the site, e.g. Li1");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace the three #s with values for fraction atomic coordinates, e.g. x 0 y 0.5 z 0.221");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace $AtomType$ with the atom name, e.g. Al. Some charges can be included, e.g. Al+3");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace the # after the atom type with the occupancy of that site, e.g. occ Al+3 0.5");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace the final # with the value for isotropic temperature factor beq.");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Example: site	Li1	x 0	y 0.5	z 0.02	occ Li+1	beq 1.0");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Placing an @ sign before a value causes it to be refined in the Rietveld refinement");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Currently knowledge of the Wyckoff positions is needed to determine which coordinates can be refined");
+				</item>
+				<item name="...add multiplicity" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\tnum_posns 0"); 
+				</item>
+			</menu>
+			<menu name="iv. crystal details">
+				<item name="cell mass" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_mass 0 'Calculates the cell mass"); 
+				</item>
+				<item name="cell volume" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_volume 0 'Calculates the cell volume"); 
+				</item>
+				<item name="density (g/cm^3)" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPhase_Density_g_on_cm3(0) 'Calculates the phase density"); 
+				</item>
+				<item name="weight percent" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tweight_percent 0 'Estimates the weight percent of the phase in a mixture"); 
+				</item>
+			</menu>
+
+		</menu>
+		<menu name="5b. new structure from scratch">
+			<item name="i. Phase Name" type="xinsert_script">{%phname "Enter Phase Name:"}{@
+			textArea.goToBufferEnd(false);
+			}\n\n\n'========================================================================\n'7. RIETVELD REFINEMENT PHASE - Phase information for Reitveld Refinement\n'========================================================================\n\tstr\n\t\tphase_name &quot;{$$phname}&quot;</item>
+			<menu name="ii. Lattice Parameters">
+				<item name="Cubic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tCubic(@ {$$aparameter})</item>
+				<item name="Tetragonal" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tTetragonal(@ {$$aparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}, @ {$$cparameter})</item>
+				<item name="Orthorhombic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}</item>
+				<item name="Hexagonal" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tHexagonal(@ {$$aparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}, @ {$$cparameter})</item>
+				<item name="Rhombohedral" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tRhombohedral(@ {$$aparameter}{%alparameter "Enter the 'alpha' lattice parameter value:"}{@}, @ {$$alparameter})</item>
+				<item name="Monoclinic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}{%beparameter "Enter the 'beta' lattice parameter value:"}{@}\n\t\tbe @ {$$beparameter}</item>
+				<item name="Triclinic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}{%alparameter "Enter the 'alpha' lattice parameter value:"}{@}\n\t\tal @ {$$alparameter}{%beparameter "Enter the 'beta' lattice parameter value:"}{@}\n\t\tbe @ {$$beparameter}{%gaparameter "Enter the 'gamma' lattice parameter value:"}{@}\n\t\tga @ {$$gaparameter}</item>
+			</menu>
+			<menu name="iii. Space Group">
+				<item name="Select Space Group" type="xinsert_script">{%sgrp "Enter Space Group:"}{@	
+				textArea.goToEndOfLine(false)
+				}\n\t\tspace_group &quot;{$$sgrp}&quot;\n\t\tscale @ 0.001</item>
+				<item name="HELP - Show Space Group File" type="macro">
+				jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "sgcom5.cpp");
+				</item>
+			</menu>
+			<menu name="iv. Insert Atoms">
+				<item name="Insert Atoms from .CIF File" type="macro">
+				textArea.goToBufferEnd(false);
+				Macros.getMacro("TAInsertCIF").invoke(view);
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(true);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToStartOfWhiteSpace(false);
+				textArea.goToStartOfLine(false);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.goToNextLine(true);
+				textArea.insertEnterAndIndent();
+				textArea.goToBufferEnd(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Placing an @ sign before a value causes it to be refined in the Rietveld refinement");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Knowledge of the Wyckoff positions is needed to determine which coordinates can be refined");
+				</item>
+				<item name="Insert Atom" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #"); 
+				</item>
+				<item name="Insert Atom with Temp. Factor" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #	beq #"); 
+				</item>
+				<item name="Insert Atom with Tutorial" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #	beq #");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace $SiteName$ with the name of the site, e.g. Li1");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace the three #s with values for fraction atomic coordinates, e.g. x 0 y 0.5 z 0.221");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace $AtomType$ with the atom name, e.g. Al. Some charges can be included, e.g. Al+3");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace the # after the atom type with the occupancy of that site, e.g. occ Al+3 0.5");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Replace the final # with the value for isotropic temperature factor beq.");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t'Example: site	Li1	x 0	y 0.5	z 0.02	occ Li+1	beq 1.0");
+				</item>
+			</menu>
+			<menu name="v. Peak Type">
+				<item name="Pseudo Voigt" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPV_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+				</item>
+				<item name="Thompson-Cox-Hastings" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tTCHZ_Peak_Type(@, 0.01,@, 0.01,@, 0.01,, 0,@, 0.01,, 0)"); 
+				</item>
+				<item name="PearsonVII" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPVII_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+				</item>
+				<item name="Neutron TOF" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\ttof_sample_peakshape(lor,0.2,dsp,30,dspsq,1)"); 
+				</item>
+				<item name="Bragg dQ peak shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+				</item>
+				<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+				</item>
+			<menu name="anisotropic peak shapes">
+			<item name="Spherical Harmonic 1" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\texp_conv_const = (sh{$$poparameter}-1) / Sin(Th);</item>
+			<item name="Spherical Harmonic 2" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\tprm shexpprm{$$poparameter} 1
+			\t\texp_conv_const = shexpprm{$$poparameter}*sh{$$poparameter}*Tan(Th);</item>
+			<item name="Stephens Tetragonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Tetragonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = Abs(s400 (H^4+ K^4)+ s004 L^4+ s220 H^2 K^2 + s202 (H^2 L^2 + K^2 L^2) );"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Hexagonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Hexagonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s400 + L^4 s004 + H^2 K^2 3 s400 + H^2 L^2 s202 + K^2 L^2 s202 + H K L^2 s202 + H^3 K 2 s400 + H K^3 2 s400;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'====================================================");</item>
+			<item name="Stephens Orthorhombic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Orthorhombic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=======================================================");</item>
+			<item name="Stephens Monoclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Monoclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H K^2 L s121 + H L^3 s103 + H^3 L s301;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s301 100 prm s121 100 prm s103 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Triclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Triclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H^3 K s310 + H^3 L s301 + H K^3 s130 + K^3 L s031 + H L^3 s103 + K L^3 s013 + H^2 K L s211 + H K^2 L s121 + H K L^2 s112;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s310 100 prm s301 100 prm s130 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s031 100 prm s103 100 prm s013 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s211 100 prm s121 100 prm s112 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			</menu>
+				<menu name="crystal effects">
+				<item name="crystallite size, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_L(@, 300)"); 
+				</item>
+				<item name="crystallite size, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_G(@, 300)"); 
+				</item>
+				<item name="microstrain, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_L(@, .05)"); 
+				</item>
+				<item name="microstrain, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_G(@, .05)"); 
+				</item>
+				<item name="crystallite size from integral breadth" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tLVol_FWHM_CS_G_L(1, 0, 0.89, 0, csgc, 10000, cslc, 10000)"); 
+				</item>
+				<item name="strain from Voigt-function model" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\te0_from_Strain( 0, sgc, 0.0001, slc, 0.0001)"); 
+				</item>
+			</menu>
+			</menu>
+			<menu name="vi. crystal details">
+				<item name="cell mass" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_mass 0 'Calculates the cell mass"); 
+				</item>
+				<item name="cell volume" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_volume 0 'Calculates the cell volume"); 
+				</item>
+				<item name="density (g/cm^3)" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPhase_Density_g_on_cm3(0) 'Calculates the phase density"); 
+				</item>
+				<item name="weight percent" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tweight_percent 0 'Estimates the weight percent of the phase in a mixture"); 
+				</item>
+			</menu>
+		</menu>
+		<menu name="5c. new structure from .CIF file">
+			<item name="i. Read a .CIF File" type="macro">
+				textArea.goToBufferEnd(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\n\n'========================================================================"); 
+				buffer.insert(textArea.getCaretPosition(), "\n'7. RIETVELD REFINEMENT PHASE - Phase information for Reitveld Refinement");  
+				buffer.insert(textArea.getCaretPosition(), "\n'========================================================================"); 
+				Macros.getMacro("TAInsertCIF").invoke(view);
+				textArea.goToBufferEnd(false);
+				buffer.insert(textArea.getCaretPosition(), "\n'Place @ before values to be refined in Rietveld refinement");
+			</item>
+			<item name="ii. Phase Name" type="xinsert_script">{%phname "Enter Phase Name:"}{@
+			textArea.goToEndOfLine(false)
+			}\n\t\tphase_name &quot;{$$phname}&quot;\n\t\tscale @ 0.001</item>
+			<menu name="iii. Peak Type">
+				<item name="Pseudo Voigt" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPV_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+				</item>
+				<item name="Thompson-Cox-Hastings" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tTCHZ_Peak_Type(@, 0.01,@, 0.01,@, 0.01,, 0,@, 0.01,, 0)"); 
+				</item>
+				<item name="PearsonVII" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPVII_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+				</item>
+				<item name="Neutron TOF" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\ttof_sample_peakshape(lor,0.2,dsp,30,dspsq,1)"); 
+				</item>
+				<item name="Bragg dQ peak shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+				</item>
+				<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+					textArea.goToEndOfLine(false);
+					buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+				</item>
+			<menu name="anisotropic peak shapes">
+			<item name="Spherical Harmonic 1" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\texp_conv_const = (sh{$$poparameter}-1) / Sin(Th);</item>
+			<item name="Spherical Harmonic 2" type="xinsert_script">{%poparameter "Enter the phase number:"}{@
+				textArea.goToBufferEnd(false);
+			}\n\t\tspherical_harmonics_hkl   sh{$$poparameter}
+			\t\tsh_order 8 '4, 6 or 8
+			\t\tprm shexpprm{$$poparameter} 1
+			\t\texp_conv_const = shexpprm{$$poparameter}*sh{$$poparameter}*Tan(Th);</item>
+			<item name="Stephens Tetragonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Tetragonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = Abs(s400 (H^4+ K^4)+ s004 L^4+ s220 H^2 K^2 + s202 (H^2 L^2 + K^2 L^2) );"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Hexagonal" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Hexagonal Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s400 + L^4 s004 + H^2 K^2 3 s400 + H^2 L^2 s202 + K^2 L^2 s202 + H K L^2 s202 + H^3 K 2 s400 + H K^3 2 s400;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s202 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'====================================================");</item>
+			<item name="Stephens Orthorhombic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Orthorhombic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=======================================================");</item>
+			<item name="Stephens Monoclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Monoclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H K^2 L s121 + H L^3 s103 + H^3 L s301;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s301 100 prm s121 100 prm s103 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			<item name="Stephens Triclinic" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'===Triclinic Stephens Anisotropic Peak Broadening===");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm mhkl = H^4 s400 + K^4 s040 + L^4 s004 + H^2 K^2 s220 + H^2 L^2 s202 + K^2 L^2 s022 + H^3 K s310 + H^3 L s301 + H K^3 s130 + K^3 L s031 + H L^3 s103 + K L^3 s013 + H^2 K L s211 + H K^2 L s121 + H K L^2 s112;"); 
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm pp = D_spacing^2 * Sqrt(Max(mhkl,0)) / 1000;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s400 100 prm s040 100 prm s004 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s220 100 prm s202 100 prm s022 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s310 100 prm s301 100 prm s130 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s031 100 prm s103 100 prm s013 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm s211 100 prm s121 100 prm s112 100");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tprm eta 0.5 min 0 max 1");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tgauss_fwhm = 1.8/3.1415927 pp (1-eta) Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tlor_fwhm = 1.8/3.1415927 pp eta Tan(Th) + 0.0001;");
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t'=====================================================");</item>
+			</menu>
+			<menu name="crystal effects">
+				<item name="crystallite size, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_L(@, 300)"); 
+				</item>
+				<item name="crystallite size, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_G(@, 300)"); 
+				</item>
+				<item name="microstrain, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_L(@, .05)"); 
+				</item>
+				<item name="microstrain, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_G(@, .05)"); 
+				</item>
+				<item name="crystallite size from integral breadth" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tLVol_FWHM_CS_G_L(1, 0, 0.89, 0, csgc, 10000, cslc, 10000)"); 
+				</item>
+				<item name="strain from Voigt-function model" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\te0_from_Strain( 0, sgc, 0.0001, slc, 0.0001)"); 
+				</item>
+			</menu>
+			
+			</menu>
+			<menu name="iv. crystal details">
+				<item name="cell mass" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_mass 0 'Calculates the cell mass"); 
+				</item>
+				<item name="cell volume" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_volume 0 'Calculates the cell volume"); 
+				</item>
+				<item name="density (g/cm^3)" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPhase_Density_g_on_cm3(0) 'Calculates the phase density"); 
+				</item>
+				<item name="weight percent" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tweight_percent 0 'Estimates the weight percent of the phase in a mixture"); 
+				</item>
+			</menu>
+			<menu name="v. lattice parameters">
+				<item name="convert to cubic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("c =Get(a);");
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to tetragonal/hexagonal" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to orthorhombic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setReplaceString("b @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to rhombohedral" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("c =Get(a);");
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setReplaceString("al @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("be =Get(al);");
+				SearchAndReplace.setSearchString("ga");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("ga =Get(al);");
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to monoclinic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setReplaceString("b @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setReplaceString("be @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to triclinic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a");
+				SearchAndReplace.setReplaceString("a @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b");
+				SearchAndReplace.setReplaceString("b @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c");
+				SearchAndReplace.setReplaceString("c @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("al");
+				SearchAndReplace.setReplaceString("al @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("be");
+				SearchAndReplace.setReplaceString("be @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("ga");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("ga");
+				SearchAndReplace.setReplaceString("ga @");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+			</menu>
+		</menu>
+		<item name="view structure" type="macro">
+		textArea.goToEndOfLine(false);
+		buffer.insert(textArea.getCaretPosition(), "\nview_structure 'Opens a structure viewer in Topas upon running the .INP file"); 
+		</item>
+		<menu name="outputs">
+			<item name="output .CIF file" type="macro">
+			textArea.goToBufferEnd(false);
+			buffer.insert(textArea.getCaretPosition(), "\nOut_CIF_STR(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + ".cif\")"); 
+			</item>
+			<item name="output hkl, 2th and intensity values" type="macro">
+			textArea.goToBufferEnd(false);
+			buffer.insert(textArea.getCaretPosition(), "\nCreate_hklm_d_Th2_Ip_file(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + "_hklm_d_Th2_Ip.txt\")"); 
+			</item>
+			<item name="report bond lengths" type="macro">
+			textArea.goToBufferEnd(false);
+			buffer.insert(textArea.getCaretPosition(), "\nappend_bond_lengths");
+			</item>
+		</menu>
+		<menu name="Fourier map">
+			<item name="insert Fourier map" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tfourier_map 1"); 
+			</item>
+			<item name="i. difference Fourier" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t\tfourier_map_formula = Fobs - Fcalc;"); 
+			</item>
+			<item name="ii. observed Fourier" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t\tfourier_map_formula = Fobs;"); 
+			</item>
+			<item name="iii. calculated Fourier" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t\tfourier_map_formula = Fcalc;"); 
+			</item>
+			<item name="...extend calculated sphere to" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t\textend_calculated_sphere_to 1"); 
+			</item>
+			<item name="...atom types to pick" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t\tload f_atom_type f_atom_quantity \n\t\t\t{ \n\t\t\t}"); 
+			</item>
+			<item name="...minimum grid spacing" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t\tmin_grid_spacing #"); 
+			</item>
+		</menu>
+		<menu name="advanced options">
+			<menu name="Preferred Orientation">
+				<item name="March Dollase - 1 direction" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPreferred_Orientation(@, 1,, #h #k #l)"); 
+				</item>
+				<item name="March Dollase - 2 directions" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPO_Two_Directions(@, 1,, 1 1 1,@, 1,, ,@, 0.5)"); 
+				</item>
+				<item name="Spherical Harmonics" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPO_Spherical_Harmonics(sh, 8) ''sh' is the variable name, replace # with the order of the spherical harmonics");
+				</item>
+			</menu>
+				<item name="Surface_Roughness_Pitschke_et_al" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tSurface_Roughness_Pitschke_et_al(@, 0,, 0)"); 
+				</item>
+				<item name="Surface_Roughness_Suortti" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tSurface_Roughness_Suortti(, 0, @, 0)"); 
+				</item>
+				<item name="Absorption (1/cm)" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tAbsorption(@, 100)"); 
+				</item>
+				<item name="Absorption_With_Sample_Thickness_mm_Shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tAbsorption_With_Sample_Thickness_mm_Shape(@, 100, @, 10)"); 
+				</item>
+				<item name="Absorption_With_Sample_Thickness_mm_Shape_Intensity" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tAbsorption_With_Sample_Thickness_mm_Shape_Intensity(@, 100, @, 10)"); 
+				</item>
+		</menu>
+	<item name="Save this file and send to TA" type="macro">
+		Buffer b = jEdit.openTemporary(view,null,jEdit.getProperty("ta.main.dir") + "launch_file.txt",false);
+		try {
+			if (buffer.isDirty()) {
+				buffer.save(view,null,true);
+			}
+			if (b != null) {
+				while(!b.isLoaded())	VFSManager.waitForRequests();
+				b.remove(0,b.getLength());
+				b.insert(0, '"'+buffer.getPath()+'"');
+				b.save(view, b.getPath());
+			}
+		} finally {
+			if(b != null) {
+				//b.close();
+			}
+		}
+	</item>
+	</menu>
+	<menu name="6. Peak Fitting">
+			<menu name="6a. From 2th Values">
+			<item name="i. xo_Is..." type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\txo_Is"); 
+			</item>
+			<item name="ii. ...xo # I #..." type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\t   xo @ # I @ 1"); 
+			</item>
+			<menu name="iii. Peak type">
+			<item name="Pseudo Voigt" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tPV_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+			</item>
+			<item name="Thompson-Cox-Hastings" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tTCHZ_Peak_Type(@, 0.01,@, 0.01,@, 0.01,, 0,@, 0.01,, 0)"); 
+			</item>
+			<item name="PearsonVII" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tPVII_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+			</item>
+			<item name="Bragg dQ peak shape" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+			</item>
+			<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+			</item>
+			<menu name="crystal effects">
+				<item name="crystallite size, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_L(@, 300)"); 
+				</item>
+				<item name="crystallite size, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_G(@, 300)"); 
+				</item>
+				<item name="microstrain, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_L(@, .05)"); 
+				</item>
+				<item name="microstrain, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_G(@, .05)"); 
+				</item>
+				<item name="crystallite size from integral breadth" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tLVol_FWHM_CS_G_L(1, 0, 0.89, 0, csgc, 10000, cslc, 10000)"); 
+				</item>
+				<item name="strain from Voigt-function model" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\te0_from_Strain( 0, sgc, 0.0001, slc, 0.0001)"); 
+				</item>
+			</menu>
+			</menu>
+			</menu>
+			<menu name="6b. From d-Spacing Values">
+			<item name="i. d_Is..." type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\td_Is");
+			</item>
+			<item name="ii. ...d # I #..." type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\td @ # I @ 1"); 
+			</item>
+			<menu name="iii. Peak type">
+			<item name="Pseudo Voigt" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tPV_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+			</item>
+			<item name="Thompson-Cox-Hastings" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tTCHZ_Peak_Type(@, 0.01,@, 0.01,@, 0.01,, 0,@, 0.01,, 0)"); 
+			</item>
+			<item name="PearsonVII" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tPVII_Peak_Type(@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02,@, 0.02)"); 
+			</item>
+			<item name="Bragg dQ peak shape" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+			</item>
+			<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+			</item>
+			<menu name="crystal effects">
+				<item name="crystallite size, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_L(@, 300)"); 
+				</item>
+				<item name="crystallite size, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tCS_G(@, 300)"); 
+				</item>
+				<item name="microstrain, Lorentzian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_L(@, .05)"); 
+				</item>
+				<item name="microstrain, Gaussian" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tStrain_G(@, .05)"); 
+				</item>
+				<item name="crystallite size from integral breadth" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tLVol_FWHM_CS_G_L(1, 0, 0.89, 0, csgc, 10000, cslc, 10000)"); 
+				</item>
+				<item name="strain from Voigt-function model" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\te0_from_Strain( 0, sgc, 0.0001, slc, 0.0001)"); 
+				</item>
+			</menu>
+			</menu>
+			</menu>
+		<menu name="output">	
+			<item name="create 2th+Ip file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tCreate_2Th_Ip_file(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + "_2Th_Ip.txt\")"); 
+		</item>
+		<item name="create d-spacing+Ip file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tCreate_d_Ip_file(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + "_d_Ip.txt\")"); 
+		</item>
+		<item name="create 2th+IScaled file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tCreate_2Th_IScaled_file(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + "_2Th_IScaled.txt\")"); 
+		</item>
+		<item name="create d-spacing+IScaled file" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tCreate_d_IScaled_file(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + "_d_IScaled.txt\")"); 
+		</item>
+		</menu>
+	</menu>
+	<menu name="7. indexing">
+	<item name="i. Select Diffraction File" type="macro">
+TAnewINP(v)
+{
+	String w_ext = jEdit.getProperty("ta.last_xdd_type");
+	if (w_ext == null) w_ext = "*.xy";
+	jEdit.setProperty("vfs.browser.last-filter", w_ext);
+
+	String w_path = jEdit.getProperty("ta.last_new_inp_dir");
+	if (w_path == null) {
+		w_path = jEdit.getProperty("ta.main.dir") +"test_examples\\";
+	}
+	jEdit.setProperty("vfs.browser.last-path", w_path);
+
+	VFSFileChooserDialog chooser = new VFSFileChooserDialog(v, w_path, VFSBrowser.OPEN_DIALOG, true);
+	String[] files = chooser.getSelectedFiles();
+	if (files != null) {
+		String w_dir = MiscUtilities.getParentOfPath(files[0]);
+		String w_fn_no_ext = MiscUtilities.getFileNameNoExtension(files[0]);
+		jEdit.setProperty("ta.last_new_inp_dir", w_dir);
+		
+		String w_path_inp = w_dir + w_fn_no_ext + "indx.inp";
+		b = jEdit.openFile(v, w_path_inp);
+		if (b != null) {
+			if (b.isNewFile()) {
+				t = v.getTextArea();
+				int i = 0;
+				while(true) {
+					t.goToEndOfLine(false);
+					String w_path = MiscUtilities.getFileName(files[i]);
+					if (w_path.indexOf(' ') != -1) {
+						w_path = "\"" + w_path + "\"";
+					}
+					b.insert(t.getCaretPosition(), "\n'========================================================="); 
+					b.insert(t.getCaretPosition(), "\n'INDEXING INPUT FILE - Contains information for Topas on indexing"); 
+					b.insert(t.getCaretPosition(), "\n'========================================================="); 
+					b.insert(t.getCaretPosition(), "\nseed"); 
+					i++;
+					if (i == files.length) break;
+				}
+				jEdit.setProperty("ta.last_xdd_type", "*" + MiscUtilities.getFileExtension(files[0]));
+			} else {
+				String wmes = "INP file " + w_path_inp + " already exists";
+				Macros.message(v, wmes);
+			}
+		}
+	}
+}
+TAnewINP(view);
+		</item>
+		<menu name="7a. From 2th Values">
+			<item name="ii. Include Zero Error" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nindex_zero_error 'Includes a zero error in the indexing routine"); 
+			</item>
+			<menu name="iiia. Crystal Systems">
+				<item name="All Crystal Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Cubic_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Trigonal_Hexagonal_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Tetragonal_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Orthorhombic_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Monoclinic_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Triclinic_sgs");
+				</item>
+				<item name="Cubic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Cubic_sgs");
+				</item>
+				<item name="Trigonal/Hexagonal Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Trigonal_Hexagonal_sgs");
+				</item>
+				<item name="Tetragonal Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Tetragonal_sgs");
+				</item>
+				<item name="Orthorhombic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Orthorhombic_sgs");
+				</item>
+				<item name="Monoclinic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Monoclinic_sgs");
+				</item>
+				<item name="Triclinic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Triclinic_sgs");
+				</item>
+			</menu>
+			<menu name="iiib. Bravais Lattices">
+				<item name="Cubic_F" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nCubic_F"); 
+				</item>
+				<item name="Cubic_I" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nCubic_I"); 
+				</item>
+				<item name="Cubic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nCubic_P"); 
+				</item>
+				<item name="Trigonal_Hexagonal_R" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTrigonal_Hexagonal_R"); 
+				</item>
+				<item name="Trigonal_Hexagonal_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTrigonal_Hexagonal_P"); 
+				</item>
+				<item name="Tetragonal_I" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTetragonal_I"); 
+				</item>
+				<item name="Tetragonal_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTetragonal_P"); 
+				</item>
+				<item name="Orthorhombic_F" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_F"); 
+				</item>
+				<item name="Orthorhombic_I" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_I"); 
+				</item>
+				<item name="Orthorhombic_C" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_C"); 
+				</item>
+				<item name="Orthorhombic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_P"); 
+				</item>
+				<item name="Monoclinic_C" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nMonoclinic_C"); 
+				</item>
+				<item name="Monoclinic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nMonoclinic_P"); 
+				</item>
+				<item name="Triclinic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTriclinic_P"); 
+				</item>
+			</menu>
+			<item name="iv. Wavelength" type="xinsert_script">{%wavelength "Enter Wavelength:"}{@
+			textArea.goToEndOfLine(false);
+			}\nindex_lam {$$wavelength} 'Radiation wavelength</item>
+			<item name="v. Input 2th Values" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nload index_th2 {");
+			buffer.insert(textArea.getCaretPosition(), "\n'Input the 2theta values in a list below within the { }s");
+			buffer.insert(textArea.getCaretPosition(), "\n"); 
+			buffer.insert(textArea.getCaretPosition(), "\n}"); 
+			textArea.goToPrevLine(false);
+			</item>
+			<item name="...good value" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\tgood");
+			textArea.goToNextLine(false);
+			</item>
+		</menu>
+		<menu name="7b. From d-Spacing Values">
+			<item name="ii. Include Zero Error" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nindex_zero_error 'Includes a zero error in the indexing routine"); 
+			</item>
+			<menu name="iiia. Crystal Systems">
+				<item name="All Crystal Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Cubic_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Trigonal_Hexagonal_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Tetragonal_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Orthorhombic_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Monoclinic_sgs");
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Triclinic_sgs");
+				</item>
+				<item name="Cubic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Cubic_sgs");
+				</item>
+				<item name="Trigonal/Hexagonal Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Trigonal_Hexagonal_sgs");
+				</item>
+				<item name="Tetragonal Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Tetragonal_sgs");
+				</item>
+				<item name="Orthorhombic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Orthorhombic_sgs");
+				</item>
+				<item name="Monoclinic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Monoclinic_sgs");
+				</item>
+				<item name="Triclinic Systems" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nBravais_Triclinic_sgs");
+				</item>
+			</menu>
+			<menu name="iiib. Bravais Lattices">
+				<item name="Cubic_F" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nCubic_F"); 
+				</item>
+				<item name="Cubic_I" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nCubic_I"); 
+				</item>
+				<item name="Cubic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nCubic_P"); 
+				</item>
+				<item name="Trigonal_Hexagonal_R" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTrigonal_Hexagonal_R"); 
+				</item>
+				<item name="Trigonal_Hexagonal_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTrigonal_Hexagonal_P"); 
+				</item>
+				<item name="Tetragonal_I" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTetragonal_I"); 
+				</item>
+				<item name="Tetragonal_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTetragonal_P"); 
+				</item>
+				<item name="Orthorhombic_F" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_F"); 
+				</item>
+				<item name="Orthorhombic_I" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_I"); 
+				</item>
+				<item name="Orthorhombic_C" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_C"); 
+				</item>
+				<item name="Orthorhombic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nOrthorhombic_P"); 
+				</item>
+				<item name="Monoclinic_C" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nMonoclinic_C"); 
+				</item>
+				<item name="Monoclinic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nMonoclinic_P"); 
+				</item>
+				<item name="Triclinic_P" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nTriclinic_P"); 
+				</item>
+			</menu>
+			<item name="iv. Input d-Space Values" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\nload index_d {");
+			buffer.insert(textArea.getCaretPosition(), "\n'Input the d-space values in a list below within the { }s");
+			buffer.insert(textArea.getCaretPosition(), "\n"); 
+			buffer.insert(textArea.getCaretPosition(), "\n}"); 
+			textArea.goToPrevLine(false);
+			</item>
+			<item name="...good value" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\tgood");
+			textArea.goToNextLine(false);
+			</item>
+		</menu>
+		<menu name="other options">
+			<item name="min lattice parameter" type="xinsert_script">{%minlp "Enter the minimum lattice parameter value:"}{@
+			textArea.goToBufferEnd(false);
+			}\nindex_min_lp {$$minlp}</item>
+			<item name="max lattice parameter" type="xinsert_script">{%maxlp "Enter the maxium lattice parameter value:"}{@
+			textArea.goToBufferEnd(false);
+			}\nindex_max_lp {$$maxlp}</item>
+			<item name="max calculated to observed lines" type="xinsert_script">{%maxratio "Enter the maxium ratio of the number of calculated to observed lines:"}{@
+			textArea.goToBufferEnd(false);
+			}\nindex_max_Nc_on_No {$$maxratio} 'The value of 6 allows for up to 83% of missing lines</item>
+			<item name="max number of solutions" type="xinsert_script">{%maxsol "Enter the maxium number of solutions:"}{@
+			textArea.goToBufferEnd(false);
+			}\nindex_max_number_of_solutions {$$maxsol} 'Default is 1000</item>
+			<item name="max 2theta error" type="xinsert_script">{%max2th "Enter the maxium 2theta error:"}{@
+			textArea.goToBufferEnd(false);
+			}\nindex_max_th2_error {$$max2th} 'Default is 0.05</item>
+			<item name="max zero error" type="xinsert_script">{%maxzero "Enter the maxium zero error:"}{@
+			textArea.goToBufferEnd(false);
+			}\nindex_max_zero_error {$$maxzero} 'Default is 0.2</item>
+		</menu>
+		<item name="Save and send to TA" type="macro">
+		Buffer b = jEdit.openTemporary(view,null,jEdit.getProperty("ta.main.dir") + "launch_file.txt",false);
+		try {
+			if (buffer.isDirty()) {
+				buffer.save(view,null,true);
+			}
+			if (b != null) {
+				while(!b.isLoaded())	VFSManager.waitForRequests();
+				b.remove(0,b.getLength());
+				b.insert(0, '"'+buffer.getPath()+'"');
+				b.save(view, b.getPath());
+			}
+		} finally {
+			if(b != null) {
+				//b.close();
+			}
+		}
+		</item>
+	</menu>
+	<menu name="8. structure solution related">
+		<item name="i. Header" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nAuto_T(5) 'Temperature regime for simulated annealing");
+				buffer.insert(textArea.getCaretPosition(), "\npenalties_weighting_K1 5 'Weighting for penalties");
+				buffer.insert(textArea.getCaretPosition(), "\nquick_refine .1 'Removed slowly refining parameters");</item>
+		<item name="ii. rr macro" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\nmacro RR { rand_xyz = Rand(0,1); }");</item>
+		<item name="iii. anti-bump penalties" type="xinsert_script">{%fromatom "Introduce anti-bump pentalties from which atom?:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tAI_Anti_Bump({$$fromatom}{%toatom "...to which atom?:"}{@}*, {$$toatom}{%bumpdist "At what bond distance?:"}{@}*, {$$bumpdist}, 1, 100)</item>
+		<item name="iv. merge occupancies" type="xinsert_script">{%mergeatom "Merge which atoms?:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tocc_merge {$$mergeatom}{%mergerad "Merge occupancies at what distance?:"}{@}*  occ_merge_radius {$$mergerad}</item>
+		<item name="v. rigid body" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\trigid");
+				buffer.insert(textArea.getCaretPosition(), "\n\t'Paste rigid body data from Rigid Body Editor here...");
+				buffer.insert(textArea.getCaretPosition(), "\n\t ");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tRotate_about_axies(@  0 val_on_continue = Val + Rand(-60, 60);,");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t\t\t@  0 val_on_continue = Val + Rand(-60, 60);,");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t\t\t@  0 val_on_continue = Val + Rand(-60, 60);)");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tTranslate(@ 0, @ 0, @ 0)");
+				buffer.insert(textArea.getCaretPosition(), "\n\t\t\trand_xyz = Rand(0, 1);");</item>
+		<item name="vi. normalize atomic coordinates" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\tnormalize_FCs");</item>
+		<item name="View Structure" type="macro">
+		textArea.goToEndOfLine(false);
+		buffer.insert(textArea.getCaretPosition(), "\nview_structure");</item>
+      <menu name="structure solution examples">
+			<item name="ae1-auto.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "ae1-auto.inp");</item>
+			<item name="ae1-manual.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "ae1-manual.inp");</item>
+			<item name="ae14-auto-4cl-fixed.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "ae14-auto-4cl-fixed.inp");</item>
+			<item name="ae5-auto.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "ae5-auto.inp");</item>
+			<item name="alvo4-decompose.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "alvo4-decompose.inp");</item>
+			<item name="alvo4-grs-auto.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "alvo4-grs-auto.inp");</item>
+			<item name="alvo4-grs.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "alvo4-grs.inp");</item>
+			<item name="alvo4-rigid.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "alvo4-rigid.inp");</item>
+			<item name="cime-decompose.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "cime-decompose.inp");</item>
+			<item name="cime-pp.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "cime-pp.inp");</item>
+			<item name="cime-z-auto.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "cime-z-auto.inp");</item>
+			<item name="cime-z-lu-ccg.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "cime-z-lu-ccg.inp");</item>
+			<item name="cime-z-scr.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "cime-z-scr.inp");</item>
+			<item name="cime_pawley.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "cime_pawley.inp");</item>
+			<item name="pbso4-decompose.inp" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "test_examples\\" + "pbso4-decompose.inp");</item>
+		</menu>
+	</menu>
+	<menu name="9. refinement templates">
+			<item name="Polaris Refinement" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "templates\\" + "Polaris_Template_59134_MANTID.inp");</item>
+			<item name="GEM Refinement" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "templates\\" + "GEM_Template_50266_MANTID.inp");</item>
+			<item name="HRPD Refinement" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "templates\\" + "HRPD_Template_47564_MANTID.inp");</item>
+			<item name="Particle Size from PXRD" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "templates\\" + "xray_rietveld_template.inp");</item>
+	</menu>
+	<menu name="10. simulate powder pattern">
+		<item name="Simulate CuKa1 PXRD from cif" type="macro">
+			do_cif(v) {
+				t = v.getTextArea();
+				b = t.getBuffer();
+
+				t.goToEndOfLine(false);					
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\n'Calculated Pattern");
+				b.insert(t.getCaretPosition(), "\n'Cu Ka1, Ge monochromator");
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\niters 0"); 
+				b.insert(t.getCaretPosition(), "\ncalc_pattern(10,90,0.02,calcCuKa1.xy)"); 
+				b.insert(t.getCaretPosition(), "\nLP_Factor(!th2_monochromator, 26.6)");
+				b.insert(t.getCaretPosition(), "\nCuKa1(0.0001)");
+				b.insert(t.getCaretPosition(), "\n\tSimple_Axial_Model(!axial,8)"); 
+				b.insert(t.getCaretPosition(), "\nbkg 1");
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\n'Information on structure"); 
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+
+				jEdit.setProperty("vfs.browser.last-filter", "*.cif");
+				w_path = jEdit.getProperty("ta.last_cif_path");
+				if (w_path == null) {
+					w_path = jEdit.getProperty("ta.main.dir") +"cif\\";
+				}
+				jEdit.setProperty("vfs.browser.last-path", w_path);
+				waitForConsole(v);								
+				VFSFileChooserDialog chooser = new VFSFileChooserDialog(v, w_path, VFSBrowser.OPEN_DIALOG, true);
+				String[] files = chooser.getSelectedFiles();
+				if (files != null) {					
+					int i = 0;
+					b.beginCompoundEdit();
+					while(true) {
+						runInSystemShell(v, jEdit.getProperty("ta.main.dir"));			
+						waitForConsole(v);								
+						runInSystemShell(v, "cif1 " + "\"" + files[i] + "\" cif1.tmp");
+						waitForConsole(v);								
+						t.goToEndOfLine(false);					
+						b.insert(t.getCaretPosition(), "\n");
+						b.insertFile(v, jEdit.getProperty("ta.main.dir") + "cif1.tmp");
+						VFSManager.waitForRequests();
+						i++;
+						if (i == files.length) break;
+						b.insert(t.getCaretPosition(), "\n");
+					}
+					b.endCompoundEdit();
+					jEdit.setProperty("ta.last_cif_path", files[0]);
+				}
+				t.goToEndOfLine(false);
+				b.insert(t.getCaretPosition(), "\n\t\tPV_Peak_Type( , 0.008, , 0.125, , 0.025, , 0.5, , 0.0008, , 0.3)");  
+				b.insert(t.getCaretPosition(), "\n\t\tPhase_Density_g_on_cm3(0)");
+				b.insert(t.getCaretPosition(), "\n\t\tscale 0.000001");
+				}
+			do_cif(view);
+			</item>
+			<item name="Simulate CoKa1 PXRD from cif" type="macro">
+			do_cif(v) {
+				t = v.getTextArea();
+				b = t.getBuffer();
+
+				t.goToEndOfLine(false);					
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\n'Calculated Pattern");
+				b.insert(t.getCaretPosition(), "\n'Co Ka1, Ge monochromator");
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\niters 0"); 
+				b.insert(t.getCaretPosition(), "\ncalc_pattern(10,90,0.02,calcCoKa1.xy)"); 
+				b.insert(t.getCaretPosition(), "\nlam ymin_on_ymax 0.0001");
+				b.insert(t.getCaretPosition(), "\nla 1 lo 1.788960 lh 0.1");
+				b.insert(t.getCaretPosition(), "\nLP_Factor(!th2_monochromator, 32)");
+				b.insert(t.getCaretPosition(), "\n\tSimple_Axial_Model(!axial,8)"); 
+				b.insert(t.getCaretPosition(), "\nbkg 1");
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\n'Information on structure"); 
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+
+				jEdit.setProperty("vfs.browser.last-filter", "*.cif");
+				w_path = jEdit.getProperty("ta.last_cif_path");
+				if (w_path == null) {
+					w_path = jEdit.getProperty("ta.main.dir") +"cif\\";
+				}
+				jEdit.setProperty("vfs.browser.last-path", w_path);
+				waitForConsole(v);								
+				VFSFileChooserDialog chooser = new VFSFileChooserDialog(v, w_path, VFSBrowser.OPEN_DIALOG, true);
+				String[] files = chooser.getSelectedFiles();
+				if (files != null) {					
+					int i = 0;
+					b.beginCompoundEdit();
+					while(true) {
+						runInSystemShell(v, jEdit.getProperty("ta.main.dir"));			
+						waitForConsole(v);								
+						runInSystemShell(v, "cif1 " + "\"" + files[i] + "\" cif1.tmp");
+						waitForConsole(v);								
+						t.goToEndOfLine(false);					
+						b.insert(t.getCaretPosition(), "\n");
+						b.insertFile(v, jEdit.getProperty("ta.main.dir") + "cif1.tmp");
+						VFSManager.waitForRequests();
+						i++;
+						if (i == files.length) break;
+						b.insert(t.getCaretPosition(), "\n");
+					}
+					b.endCompoundEdit();
+					jEdit.setProperty("ta.last_cif_path", files[0]);
+				}
+				t.goToEndOfLine(false);
+				b.insert(t.getCaretPosition(), "\n\t\tTCHZ_Peak_Type( , 0, , 0.002, , 0.001, , 0, , 0.03, , 0)");  
+				b.insert(t.getCaretPosition(), "\n\t\tPhase_Density_g_on_cm3(0)");
+				b.insert(t.getCaretPosition(), "\n\t\tscale 0.000001");
+				}
+			do_cif(view);
+			</item>
+			<item name="Simulate HRPD Bank2 pattern from cif" type="macro">
+			do_cif(v) {
+				t = v.getTextArea();
+				b = t.getBuffer();
+				
+				t.goToEndOfLine(false);					
+				b.insert(t.getCaretPosition(), "'=================="); 
+				b.insert(t.getCaretPosition(), "\n'Calculated Pattern");
+				b.insert(t.getCaretPosition(), "\n'HRPD, bank 2");
+				b.insert(t.getCaretPosition(), "'=================="); 
+				b.insert(t.getCaretPosition(), "\niters 0");
+				b.insert(t.getCaretPosition(), "\ncalc_pattern(30000,135000,50,calcHRPDb2.xy)"); 
+				b.insert(t.getCaretPosition(), "\nneutron_data"); 
+				b.insert(t.getCaretPosition(), "\nTOF_LAM(0.001)"); 
+				b.insert(t.getCaretPosition(), "\nbkg 1"); 
+				b.insert(t.getCaretPosition(), "\nscale_pks = D_spacing^4;"); 
+				b.insert(t.getCaretPosition(), "\nTOF_x_axis_calibration(!t0_90,   7.60, !difc_90, 34729.97, !difa_90, 0.296)"); 
+				b.insert(t.getCaretPosition(), "\nwifd_pkshape(!two_theta, 90.2481, !aprm, 2.50000, !tauf_2, 9.80744, !tauf_1, 0.43977, !tauf_0, 0.000, !taus_0, 25.27420, !taus_1, 2.66797, !t_eff, 144.41296, !hhh, 3.58595, !hhh_0, 11.61348)");
+
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+				b.insert(t.getCaretPosition(), "\n'Information on structure"); 
+				b.insert(t.getCaretPosition(), "\n'========================"); 
+
+				jEdit.setProperty("vfs.browser.last-filter", "*.cif");
+				w_path = jEdit.getProperty("ta.last_cif_path");
+				if (w_path == null) {
+					w_path = jEdit.getProperty("ta.main.dir") +"cif\\";
+				}
+				jEdit.setProperty("vfs.browser.last-path", w_path);
+				waitForConsole(v);								
+				VFSFileChooserDialog chooser = new VFSFileChooserDialog(v, w_path, VFSBrowser.OPEN_DIALOG, true);
+				String[] files = chooser.getSelectedFiles();
+				if (files != null) {					
+					int i = 0;
+					b.beginCompoundEdit();
+					while(true) {
+						runInSystemShell(v, jEdit.getProperty("ta.main.dir"));			
+						waitForConsole(v);								
+						runInSystemShell(v, "cif1 " + "\"" + files[i] + "\" cif1.tmp");
+						waitForConsole(v);								
+						t.goToEndOfLine(false);					
+						b.insert(t.getCaretPosition(), "\n");
+						b.insertFile(v, jEdit.getProperty("ta.main.dir") + "cif1.tmp");
+						VFSManager.waitForRequests();
+						i++;
+						if (i == files.length) break;
+						b.insert(t.getCaretPosition(), "\n");
+					}
+					b.endCompoundEdit();
+					jEdit.setProperty("ta.last_cif_path", files[0]);
+				}
+				t.goToEndOfLine(false);
+				b.insert(t.getCaretPosition(), "\n\t\ttof_sample_peakshape(!lor2, 0.469966692`,!dsp2, 232.25430`,!dspsq2, 0.00000`)"); 
+			}
+			do_cif(view);
+			</item>
+			<item name="...add noise" type="xinsert_script">{%noiseparameter "Enter the noise level, e.g. 0.01:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tfit_obj = Rand(-{$$noiseparameter},{$$noiseparameter});
+			</item>
+	</menu>
+	<menu name="11. help">
+		<item name="Technical Reference" type="macro">
+			runInSystemShell(view, "start /D\""+ jEdit.getProperty("ta.main.dir") +"\" Technical_Reference.pdf&amp;");
+			waitForConsole(view);
+		</item>
+		<item name="Users Manual" type="macro">
+			runInSystemShell(view, "start /D\""+ jEdit.getProperty("ta.main.dir") +"\" Users_Manual.pdf&amp;");
+			waitForConsole(view);
+		</item>
+		<menu name="other resources">
+			<item name="Standard macros - Topas.inc" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "Topas.inc");</item>
+			<item name="Space group file" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "sgcom5.cpp");</item>
+			<item name="Keyboard basics" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "keyboard.txt");</item>
+			<item name="Neutron scattering lengths" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "neutscat.cpp");</item>
+			<item name="OpenGL atom colors" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "atom_colors.def");</item>
+			<item name="OpenGL atom radii" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "atom_radius.def");</item>
+			<item name="OpenGL No Polygons" type="macro">jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "no_polyhedra.def");</item>
+		</menu>
+	</menu>
+<item name="Save file and send to TA" type="macro">
+		Buffer b = jEdit.openTemporary(view,null,jEdit.getProperty("ta.main.dir") + "launch_file.txt",false);
+		try {
+			if (buffer.isDirty()) {
+				buffer.save(view,null,true);
+			}
+			if (b != null) {
+				while(!b.isLoaded())	VFSManager.waitForRequests();
+				b.remove(0,b.getLength());
+				b.insert(0, '"'+buffer.getPath()+'"');
+				b.save(view, b.getPath());
+			}
+		} finally {
+			if(b != null) {
+				//b.close();
+			}
+		}
+</item>
+</menu>
