@@ -1,0 +1,40 @@
+'=== FILE HEADER ===
+r_wp 0 r_exp 0 r_p 0 r_wp_dash 0 r_p_dash 0 r_exp_dash 0 weighted_Durbin_Watson 0 gof 0
+iters 100000 'Maximum number of iterations of refinement
+chi2_convergence_criteria 0.001 'Stop criteria for refinement
+'do_errors 'Reports errors for each refined value
+'continue_after_convergence 'Continues refinement even after reaching the stop criteria
+
+'=== POWDER DIFFRACTION FILE ===
+xdd XPDF_Si_Bragg.xy
+
+'=== FILE PREPARATION ===
+x_calculation_step = Yobs_dx_at(Xo); 'Sets the calculation step size for Rietveld refinement.
+finish_X 25 'Removes higher 2th values from future calculations
+
+'=== BACKGROUND FUNCTION ===
+bkg @ 0 0 0 0 0 0 
+      0 0 0 0 0 0 
+bkg_file("XPDF_Capillary_Bragg.xy",@,1)
+
+'=== RADIATION SOURCE - Synchrotron X-ray source with area detector (polarisation corrected data) ===
+LP_Factor( ,0) 'Lorentz-Polarisation factor
+lam ymin_on_ymax 0.0001 la 1.0 lo =12.3984191/76.69; : 0 lh 0.1 'Radiation profile
+			Rs  200 'Sample-to-detector distance (mm)
+			
+'========================================================================
+'7. RIETVELD REFINEMENT PHASE - Phase information for Reitveld Refinement
+'========================================================================
+	str
+		a 5.43119  
+		b 5.43119  
+		c 5.43119  
+		al 90       
+		be 90       
+		ga 90       
+		space_group "Fd-3m"
+		site Si1    x 0.000000      y 0.000000      z 0.000000      occ Si   1.0        beq @ 1.000000     
+'Place @ before values to be refined in Rietveld refinement
+		phase_name "Si"
+		scale @ 0.001
+		pkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)
