@@ -1,0 +1,677 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<menu name="TOPAS_for_PDF">
+
+	<item name="Run TOPAS" type="macro">
+			do_ta(v) {
+				runInSystemShell(v, jEdit.getProperty("ta.main.dir"));
+				waitForConsole(v);
+				runInSystemShell(v, "topas&amp;");
+			}
+			do_ta(view);
+	</item>
+	
+	<menu name="1. PDF data">
+
+		<item name="Select PDF Data File" type="macro">
+TAnewINP(v)
+{
+	String w_ext = jEdit.getProperty("ta.last_xdd_type");
+	if (w_ext == null) w_ext = "*.xy";
+	jEdit.setProperty("vfs.browser.last-filter", w_ext);
+
+	String w_path = jEdit.getProperty("ta.last_new_inp_dir");
+	if (w_path == null) {
+		w_path = jEdit.getProperty("ta.main.dir") +"test_examples\\";
+	}
+	jEdit.setProperty("vfs.browser.last-path", w_path);
+
+	VFSFileChooserDialog chooser = new VFSFileChooserDialog(v, w_path, VFSBrowser.OPEN_DIALOG, true);
+	String[] files = chooser.getSelectedFiles();
+	if (files != null) {
+		String w_dir = MiscUtilities.getParentOfPath(files[0]);
+		String w_fn_no_ext = MiscUtilities.getFileNameNoExtension(files[0]);
+		jEdit.setProperty("ta.last_new_inp_dir", w_dir);
+		
+		String w_path_inp = w_dir + w_fn_no_ext + ".inp";
+		b = jEdit.openFile(v, w_path_inp);
+		if (b != null) {
+			if (b.isNewFile()) {
+				t = v.getTextArea();
+				int i = 0;
+				while(true) {
+					t.goToEndOfLine(false);
+					String w_path = MiscUtilities.getFileName(files[i]);
+					if (w_path.indexOf(' ') != -1) {
+						w_path = "\"" + w_path + "\"";
+					}  
+					b.insert(t.getCaretPosition(), "'=== FILE HEADER ===");
+					b.insert(t.getCaretPosition(), "\nr_wp 0 r_exp 0 r_p 0 r_wp_dash 0 r_p_dash 0 r_exp_dash 0 weighted_Durbin_Watson 0 gof 0"); 
+					b.insert(t.getCaretPosition(), "\niters 100000 'Maximum number of iterations of refinement"); 
+					b.insert(t.getCaretPosition(), "\nchi2_convergence_criteria 0.001 'Stop criteria for refinement"); 
+					b.insert(t.getCaretPosition(), "\n'do_errors 'Reports errors for each refined value"); 
+					b.insert(t.getCaretPosition(), "\n'continue_after_convergence 'Continues refinement even after reaching the stop criteria");
+					b.insert(t.getCaretPosition(), "\n\n'=== PDF FILE ===");
+					b.insert(t.getCaretPosition(), "\nxdd " + w_path); 
+					b.insert(t.getCaretPosition(), "\n\n'=== FILE PREPARATION ===");
+					b.insert(t.getCaretPosition(), "\n\tpdf_data");
+					
+					i++;
+					if (i == files.length) break;
+				}
+				jEdit.setProperty("ta.last_xdd_type", "*" + MiscUtilities.getFileExtension(files[0]));
+			} else {
+				String wmes = "INP file " + w_path_inp + " already exists";
+				Macros.message(v, wmes);
+			}
+		}
+	}
+}
+TAnewINP(view);
+		</item>
+
+		<item name="neutron data" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\tneutron_data"); 
+		</item>
+		
+		<item name="G'(r) data" type="xinsert_script">
+			{%numdensity "Enter the number density of the phase or mixture (in atoms per cubic Angstrom):"}{@
+			textArea.goToEndOfLine(false);
+			}\n\tG_dash_of_r_scaling(!num_density,{$$numdensity}) 'Rescaling to G'(r) according to Keen, J. Appl. Cryst. (2001). 34, 172-177
+		</item>
+		
+		<item name="G(r) data" type="xinsert_script">{%numdensity "Enter the number density of the phase or mixture (in atoms per cubic Angstrom):"}{@
+			textArea.goToBufferEnd(false);
+			}\n\tG_of_r_scaling(!num_density,{$$numdensity}{%weightedav "Enter the weighted average of the scattering factors:"}{@},!weighted_av,{$$weightedav})
+		</item>
+		
+		<menu name="file preparation">
+			
+			<item name="rebin data" type="xinsert_script">{%rebinstart "Enter the starting r value for rebinning (e.g. 0.02):"}{@
+				textArea.goToBufferEnd(false);
+				}\n\trebin_start_x_at {$$rebinstart}{%rebindx "Enter the step size for rebinning (e.g. 0.02):"}{@}\n\trebin_with_dx_of {$$rebindx}
+			</item>
+			
+			<item name="start r value" type="xinsert_script">
+				{%startrvalue "Enter starting r value (in Angstroms):"}{@
+				textArea.goToEndOfLine(false);
+				}\n\tstart_X {$$startrvalue} 'Removes lower r values from future calculations
+			</item>
+				
+			<item name="end r value" type="xinsert_script">
+				{%endrvalue "Enter ending r value:"}{@
+				textArea.goToEndOfLine(false);
+				}\n\tfinish_X {$$endrvalue} 'Removes higher r values from future calculations
+			</item>
+		
+		</menu>
+
+	</menu>	
+   
+	<menu name="2. Instrumental parameters">
+   
+		<item name="dQ damping" type="xinsert_script">
+			{%dQ "Enter fixed width of reciprical space data in Q (e.g. 0.05):"}{@
+			textArea.goToEndOfLine(false);
+			}\n\tdQ_damping(dQ,{$$dQ})
+		</item>
+		
+		<item name="dQ damping with Lorentzian contribution" type="xinsert_script">{%dQ "Enter fixed width of reciprical space data in Q (e.g. 0.05):"}{@
+			textArea.goToBufferEnd(false);
+			}\n\tdQ_lor_damping(dQ,{$$dQ}{%lor "Enter the Lorentzian contribution to the reciprocal space peak shape:"}{@},lor,{$$lor})
+		</item>
+		
+		<item name="Qmax Sinc function colvolution" type="xinsert_script">
+			{%qmax "Enter maximum Q used in the Fourier transform:"}{@
+			textArea.goToEndOfLine(false);
+			}\n\tconvolute_Qmax_Sinc(Qmax,{$$qmax})
+		</item>
+		
+		<item name="Q-dependent broadening convolution" type="xinsert_script">
+			{%alpha "Enter Q-dependent broadening factor (alpha) for Bragg data:"}{@
+			textArea.goToEndOfLine(false);
+			}\n\tconvolute_alpha(alpha,{$$alpha})
+		</item>
+		
+		<item name="Lorch function colvolution" type="xinsert_script">
+			{%qmax "Enter maximum Q used in the Lorch Fourier transform:"}{@
+			textArea.goToEndOfLine(false);
+			}\n\tconvolute_Lorch(Qmax,{$$qmax})
+		</item>
+		
+		<item name="Soper-Lorch function colvolution" type="xinsert_script">
+			{%dzero "Enter broadening width used in the Soper-Lorch Fourier transform:"}{@
+			textArea.goToEndOfLine(false);
+			}\n\tconvolute_SoperLorch(d_zero,{$$dzero})
+		</item>
+   
+	</menu>	
+	
+	<menu name="3. Phase information">
+	
+		<menu name="3a. add new phase from scratch">
+		
+			<item name="i. New Phase" type="xinsert_script">{%phasename "Enter Phase Name:"}{@
+				textArea.goToEndOfLine(false)
+				}\n\n\tphase_name &quot;{$$phasename}&quot;</item>
+
+			<menu name="ii. Lattice Parameters">
+			
+				<item name="Cubic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tCubic(@ {$$aparameter})</item>
+				<item name="Tetragonal" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tTetragonal(@ {$$aparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}, @ {$$cparameter})</item>
+				<item name="Orthorhombic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}</item>
+				<item name="Hexagonal" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tHexagonal(@ {$$aparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}, @ {$$cparameter})</item>
+				<item name="Rhombohedral" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\tRhombohedral(@ {$$aparameter}{%alparameter "Enter the 'alpha' lattice parameter value:"}{@}, @ {$$alparameter})</item>
+				<item name="Monoclinic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}{%beparameter "Enter the 'beta' lattice parameter value:"}{@}\n\t\tbe @ {$$beparameter}</item>
+				<item name="Triclinic" type="xinsert_script">{%aparameter "Enter the 'a' lattice parameter value:"}{@
+				textArea.goToBufferEnd(false);
+				}\n\t\ta @ {$$aparameter}{%bparameter "Enter the 'b' lattice parameter value:"}{@}\n\t\tb @ {$$bparameter}{%cparameter "Enter the 'c' lattice parameter value:"}{@}\n\t\tc @ {$$cparameter}{%alparameter "Enter the 'alpha' lattice parameter value:"}{@}\n\t\tal @ {$$alparameter}{%beparameter "Enter the 'beta' lattice parameter value:"}{@}\n\t\tbe @ {$$beparameter}{%gaparameter "Enter the 'gamma' lattice parameter value:"}{@}\n\t\tga @ {$$gaparameter}</item>
+				
+			</menu>
+			
+			<menu name="iii. Space Group">
+			
+				<item name="Select Space Group" type="xinsert_script">{%sgrp "Enter Space Group:"}{@	
+				textArea.goToEndOfLine(false)
+				}\n\t\tspace_group &quot;{$$sgrp}&quot;</item>
+				<item name="HELP - Show Space Group File" type="macro">
+				jEdit.openFile(editPane.getView(), jEdit.getProperty("ta.main.dir") + "sgcom5.cpp");
+				</item>
+				
+			</menu>
+			
+			<item name="iv. insert atom" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tsite	$SiteName$	x #	y #	z #	occ	$AtomType$ #   ");
+			</item>
+		
+		</menu>
+		
+		<menu name="3b. add new phase from CIF">
+		
+			<item name="i. Read a .CIF File" type="macro">
+				textArea.goToBufferEnd(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\n\n'=== PHASE INFORMATION ==="); 
+				Macros.getMacro("TAInsertCIF").invoke(view);
+				textArea.goToBufferEnd(false);
+			</item>
+			
+			<menu name="ii. constrain lattice parameters">
+				<item name="convert to cubic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setReplaceString("a @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("c =Get(a);");
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to tetragonal/hexagonal" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setReplaceString("a @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setReplaceString("c @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to orthorhombic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setReplaceString("a @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setReplaceString("b @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setReplaceString("c @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to rhombohedral" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setReplaceString("a @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("b =Get(a);");
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("c =Get(a);");
+				SearchAndReplace.setSearchString("al ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("al ");
+				SearchAndReplace.setReplaceString("al @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("be =Get(al);");
+				SearchAndReplace.setSearchString("ga ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				textArea.goToEndOfWhiteSpace(true);
+				textArea.setSelectedText("ga =Get(al);");
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to monoclinic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setReplaceString("a @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setReplaceString("b @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setReplaceString("c @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("be ");
+				SearchAndReplace.setReplaceString("be @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+				<item name="convert to triclinic" type="macro">
+				SearchAndReplace.setSearchString("str");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(true);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("a ");
+				SearchAndReplace.setReplaceString("a @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("b ");
+				SearchAndReplace.setReplaceString("b @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("c ");
+				SearchAndReplace.setReplaceString("c @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("al ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("al ");
+				SearchAndReplace.setReplaceString("al @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("be ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("be ");
+				SearchAndReplace.setReplaceString("be @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				SearchAndReplace.setSearchString("ga ");
+				SearchAndReplace.setAutoWrapAround(false);
+				SearchAndReplace.setReverseSearch(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.setSearchFileSet(new CurrentBufferSet());
+				SearchAndReplace.find(view);
+				SearchAndReplace.setSearchString("ga ");
+				SearchAndReplace.setReplaceString("ga @ ");
+				SearchAndReplace.setBeanShellReplace(false);
+				SearchAndReplace.setIgnoreCase(false);
+				SearchAndReplace.setRegexp(false);
+				SearchAndReplace.replace(view);
+				textArea.goToBufferEnd(false);
+				</item>
+			</menu>
+			
+			<item name="phase name" type="xinsert_script">{%phname "Enter Phase Name:"}{@
+				textArea.goToEndOfLine(false)
+				}\n\t\tphase_name &quot;{$$phname}&quot;
+			</item>
+		
+		</menu>
+		
+		<menu name="beq peak shape functions">
+				
+			<item name="beq with r cutoff" type="xinsert_script">{%rmin "Enter minimum distance for r cutoff:"}{@
+				textArea.goToEndOfLine(false)
+				}\tbeq_r_min({$$rmin},@,0.1,@,0.5)
+			</item>
+			
+			<item name="beq spherical" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\tbeq_spherical(@,0.1,@,0.2,@,0.5,@,20)"); 
+			</item>
+			
+			<item name="beq spherical with min r cutoff" type="xinsert_script">{%rcut "Enter distance for minimum r cutoff:"}{@
+				textArea.goToEndOfLine(false)
+				}\tbeq_rcut_spherical(!rcut,{$$rcut},@,0.1,@,0.2,@,0.5,@,20)
+			</item>
+			
+			<item name="beq spherical with low r cutoff" type="xinsert_script">{%rlo "Enter distance for low r cutoff:"}{@
+				textArea.goToEndOfLine(false)
+				}\tbeq_rlo_spherical(!rlo,{$$rlo},@,0.2,@,0.5,@,20)
+			</item>
+			
+			<item name="beq spherical with min r and low r cutoffs" type="xinsert_script">{%rcut "Enter distance for minimum r cutoff  value:"}{@
+				textArea.goToEndOfLine(false);
+				}\tbeq_rcut_rlo_spherical(!rcut,{$$rcut}{%rlo "Enter distance for low r cutoff:"}{@},@,0.1,!rlo,{$$rlo},@,0.2,@,0.5,@,20)
+			</item>
+			
+			<item name="beq empirical function" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\tbeq_empirical(@,0.1,@,0.001,@,0.001,@,0.001)"); 
+			</item>
+			
+			<item name="beq PDFgui function" type="xinsert_script">{%uiso "Enter Uiso value for atom:"}{@
+				textArea.goToEndOfLine(false);
+				}\tbeq_PDFfit2(@,{$$uiso}{%rcut "Enter distance for minimum r cutoff:"}{@},!rcut,{$$rcut},@,0.8,delta1,0.001,delta2,0.001,qbroad,0.01)
+			</item>
+			
+		</menu>
+		
+		<menu name="phase details">
+		
+			<item name="cell mass" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_mass 0 'Calculates the cell mass"); 
+			</item>
+			<item name="cell volume" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tcell_volume 0 'Calculates the cell volume"); 
+			</item>
+			<item name="density (g/cm^3)" type="macro">
+				textArea.goToEndOfLine(false);
+				buffer.insert(textArea.getCaretPosition(), "\n\t\tPhase_Density_g_on_cm3(0) 'Calculates the phase density"); 
+			</item>
+			
+		</menu>
+		
+		<menu name="sample shape functions">
+		
+			<item name="spherical damping" type="xinsert_script">{%radius "Enter the spherical partical radius:"}{@
+				textArea.goToEndOfLine(false)
+				}\tspherical_damping(@,{$$radius})
+			</item>
+			
+			<item name="local-structure damping" type="xinsert_script">{%radius "Enter the spherical radius for local-structure damping:"}{@
+				textArea.goToEndOfLine(false)
+				}\tlocal_sphere(radius,{$$radius})
+			</item>
+			
+			<item name="long-range damping" type="xinsert_script">{%radius "Enter the spherical radius for long-range damping:"}{@
+				textArea.goToEndOfLine(false)
+				}\tlongrange_sphere(radius,{$$radius})
+			</item>
+			
+		</menu>
+   
+	</menu>	
+	
+	<menu name="miscellaneous macros">
+	
+		<item name="Bragg dQ peak shape" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ(dQ,0.01,lor,0.1)"); 
+		</item>
+		
+		<item name="Bragg dQ + alpha.Q peak shape" type="macro">
+			textArea.goToEndOfLine(false);
+			buffer.insert(textArea.getCaretPosition(), "\n\t\tpkshape_dQ_alpha(dQ,0.01,alpha,0.001,lor,0.1)"); 
+		</item>
+		
+		<item name="output PDF fit" type="macro">
+			textArea.goToBufferEnd(false);
+			buffer.insert(textArea.getCaretPosition(), "\nOut_PDF(\"" + MiscUtilities.getFileNameNoExtension(buffer.getPath()) + "_out.txt\")"); 
+		</item>
+	
+	</menu>	
+
+</menu>
+
+	
